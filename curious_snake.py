@@ -1,10 +1,10 @@
 '''
 ############################################
 
-	abstrackr.py
+	curious_snake
 	Byron C Wallace
-	Tufts Medical Center
-	module for running experiments.
+	Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
+	Module for running experiments.
 
 ############################################
 '''
@@ -23,27 +23,8 @@ import dataset
 import learner 
 import numpy
 import Stats
-#from learner import learner
-#data_paths = ["data//GREL"]
-#data_paths = ["data//fbis_20.txt"]
-#data_paths = ["data//G157"]
-#data_paths = ["data//E143"] # tiny
-#data_paths= ["data//fbis_111.txt"]
-#data_paths= ["data//E61"] #no.
-#data_paths= ["data//E71"]
-#data_paths = ["data//C313"]
-#data_paths = ["data//C312"]
-#data_paths = ["data//fbis_20.txt"]
-#data_paths = ["data//fbis_108_11.txt"]
-#data_paths = ["data//Molecular-Sequence-Data.txt"]
-#data_paths = ["data//la_national.txt"]
-#data_paths = ["data//cocoa_gold.txt"]
-#data_paths = ["data//news_12_1.txt"]
-#data_paths = ["data/news_12.txt"]
-#data_paths = ["data//news_221_108_273.txt"]
-#data_paths = ["data//l1_keywords.txt", "data//l1_titles.txt", "data//l1_title_concepts.txt"]
-#data_paths = ["data//fbis_202.txt"]
-#data_paths = ["data//sati"]
+
+
 def simulate_screening(training_size = 200):
     datasets = [dataset.build_dataset_from_file(f) for f in data_paths]
     larry = learner.learner(datasets)
