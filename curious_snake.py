@@ -1,33 +1,56 @@
 '''
-############################################
 
 	Byron C Wallace
 	Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
 	
-	curious_snake
+	curious_snake.py
+	--
 	This module is for running experiments.
+	
+    ... Now for some legal stuff.
+    ----
+    
+    <legal>
+    CuriousSnake is distributed under the modified BSD licence
+    Copyright (c)  2009,  byron c wallace
+    All rights reserved.
+    
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+        * Neither the name of the <organization> nor the
+          names of its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
 
-############################################
+    THIS SOFTWARE IS PROVIDED BY <copyright holder> ''AS IS'' AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.    
+    
+    
+    The files comprising the libsvm library are also under the modified BSD and are:
+    
+    Copyright (c) 2000-2008 Chih-Chung Chang and Chih-Jen Lin
+    All rights reserved.
+    </legal>
 '''
 
-import os
-import sys
 import random
 import pdb
-path_to_libsvm = os.path.join(os.getcwd(), "libsvm", "python")
-sys.path.append(path_to_libsvm)
-import svm
-from svm import *
-import numpy
 import math
 import dataset
 import learner 
-import numpy
-import Stats
 
-
-
-        
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  upto=1000, step_size = 25, 
                                 initial_size = 2, num_runs=10, eps=.0003, kappa=8, win_size=3, at_least_p = .05, for_eval = None):
     for run in range(num_runs):
