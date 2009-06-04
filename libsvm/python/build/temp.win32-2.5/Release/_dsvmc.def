@@ -1,0 +1,3 @@
+LIBRARY _dsvmc.pyd
+EXPORTS
+init_dsvmc
