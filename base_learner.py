@@ -19,103 +19,10 @@ import numpy
 import smote
 
 
-def evaluate_learner_with_holdout(learner, test_set):
-    '''
-    If you're not considering a "finite pool" problem, this is really the correct way to evaluate the trained classifiers. 
-    
-    @params
-    learner -- the learner to be evaluated
-    ''''
-    results={}
-    pos_count = learner.labeled_datasets[0].number_of_minority_examples()
-    neg_count = learner.labeled_datasets[0].number_of_majority_examples()
-    print "positives found during learning: %s\nnegatives found during learning: %s" % (pos_count, neg_count)
-    print "evaluating learner over %s instances." % len(learner.unlabeled_datasets[0].instances)
-    fns = 0
-    predictions = []
-    point_sets = [dataset.get_samples() for dataset in test_sets]
-    # the labels are assumed to be the same; thus we only use the labels for the first dataset
-    true_labels = test_sets[0].get_labels()
-   
-    # loop over all of the examples, and feed to the "cautious_classify" method 
-    # the corresponding point in each feature-space
-    for example_index in range(len(point_sets[0])):
-        # hand the cautious_predict method a list of representations of x; one per feature space/model
-        prediction = learner.predict([point_sets[feature_space_index][example_index] for feature_space_index in range(len(point_sets))])
-        predictions.append(prediction)
-    
-    conf_mat =  svm.evaluate_predictions(predictions, true_labels)
-    print "confusion matrix:"
-    print conf_mat
-    results["npos"] = pos_count
-    results["confusion_matrix"] = conf_mat
-    results["accuracy"] = float (conf_mat["tp"] + conf_mat["tn"]) / float(sum([conf_mat[key] for key in conf_mat.keys()]))
-    if float(conf_mat["tp"]) == 0:
-        results["sensitivity"] = 0
-    else:
-        results["sensitivity"] = float(conf_mat["tp"]) / float(conf_mat["tp"] + conf_mat["fn"])
-    print "sensitivity: %s" % results["sensitivity"]
-    print "accuracy: %s" % results["accuracy"]
-    return results
-    
-def evaluate_learner(learner, include_labeled_data_in_metrics=True):
-    '''
-    Returns a dictionary containing various metrics for learner performance, as measured over the
-    examples in the unlabeled_datasets belonging to the learner.
-    
-    @parameters
-    include_labeled_data_in_metrics -- If this is true, the (labeled) examples in the learner's labeled_datasets field
-                                                                                will be included in evaluation. Useful for 'finite' pool learniner; otherwise misleading.
-                                                                                In general, one should use a holdout.
-    '''
-    tps, tns, fps = 0,0,0
-    results = {}
-    # first we count the number of true positives and true negatives discovered in learning. this is so we do not
-    # unfairly penalize active learning strategies for finding lots of the minority class during training.
-    if include_labeled_data_in_metrics:
-        tps = learner.labeled_datasets[0].number_of_minority_examples(use_real_label=True, include_synthetics=False)
-        tns = learner.labeled_datasets[0].number_of_majority_examples()
-        fps = learner.labeled_datasets[0].number_of_false_minorities()
-    results["npos"] = tps
-    
-    print "positives found during learning: %s\nnegatives found during learning: %s" % (tps, tns)
-    print "number of *synthetics* used in training: %s" % len(learner.labeled_datasets[0].get_synthetic_ids())
-    print "evaluating learner over %s instances." % len(learner.unlabeled_datasets[0].instances)
-    fns = 0
-    predictions = []
-
-    # get the raw points out for prediction
-    point_sets = [dataset.get_samples() for dataset in learner.unlabeled_datasets]
-    # the labels are assumed to be the same; thus we only use the labels for the first dataset
-    true_labels = learner.unlabeled_datasets[0].get_labels()
-    # loop over all of the examples, and feed to the "cautious_classify" method 
-    # the corresponding point in each feature-space
-    for example_index in range(len(point_sets[0])):
-        # hand the cautious_predict method a list of representations of x; one per feature space/model
-        prediction = learner.predict([point_sets[feature_space_index][example_index] for feature_space_index in range(len(point_sets))])
-        predictions.append(prediction)
-
-        
-    conf_mat =  svm.evaluate_predictions(predictions, true_labels)
-    # 
-    # evaluate_predictions does not include the instances found during training!
-    #
-    conf_mat["tp"]+= tps
-    conf_mat["tn"]+= tns
-    conf_mat["fp"]+= fps
-    print "confusion matrix:"
-    print conf_mat
-    results["confusion_matrix"] = conf_mat
-    results["accuracy"] = float (conf_mat["tp"] + conf_mat["tn"]) / float(sum([conf_mat[key] for key in conf_mat.keys()]))
-    if float(conf_mat["tp"]) == 0:
-        results["sensitivity"] = 0
-    else:
-        results["sensitivity"] = float(conf_mat["tp"]) / float(conf_mat["tp"] + conf_mat["fn"])
-    print "sensitivity: %s" % results["sensitivity"]
-    print "accuracy: %s" % results["accuracy"]
-    return results
-    
 class BaseLearner:
+    '''
+    Base learner class. Sub-class this object to implement your own learning strategy. 
+    ''' 
     
     def __init__(self, unlabeled_datasets = [], models=None):
         # just using default parameter for now
@@ -130,11 +37,6 @@ class BaseLearner:
         self.div_hash = {}
         self.dist_hash = {}
         self.k_hash = {}
-        self.euclid_hash = {}
-        self.clustering = None
-        self.explore_mode = False
-        self.faux_minorities = []
-        self.hypersmote = False
         self.iter = 0
         
         # default prediction function; only important if you're aggregating multiple feature spaces (see 
