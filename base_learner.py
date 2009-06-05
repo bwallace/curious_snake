@@ -1,34 +1,48 @@
 '''    
     Byron C Wallace
     Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
-        
+    Curious Snake
     base_learner.py
     --
-    This module contains a base learner class, which you can subclass  to implement your own 
-    active learning strategy. 
+    This module contains the BaseLearner class, which you can subclass  to implement your own 
+    (pool-based) active learning strategy. BaseLearner itself can actually be used directly; it implements
+    the 'random' strategy, i.e., it picks examples for the expert to label at random. 
 '''
 
 import pdb
+import os
+import sys
 import random
 import math
-import svm
-from svm import *
 import dataset 
 import cluster
 import numpy
 import smote
-
+path_to_libsvm = os.path.join(os.getcwd(), "libsvm", "python")
+sys.path.append(path_to_libsvm)
+import svm
+from svm import *
 
 class BaseLearner:
     '''
     Base learner class. Sub-class this object to implement your own learning strategy. 
+    
+    Repeating the comment in curious_snake.py, Curious Snake was originally written for a scenario in which multiple feature spaces
+    were being exploited, thus pluralizing may of the attributes in this class. For example, 
+    *lists* of unlabeled_datasets and models are kept. If you only have one feature space that you're interested
+     in, as is often the case, simply pass around unary lists.  
     ''' 
     
     def __init__(self, unlabeled_datasets = [], models=None):
-        # just using default parameter for now
-        
-        # by default, vanilla svm_parameter object is used. overwrite if you want.
-        print "using default svm parameters!"
+        # params correspond to each of the respective models (one if we're in a single feature space)
+        # these specify things like what kind of kernel to use. here we just use the default, but
+        # *you'll probably want to overwrite this* in your subclass. see the libsvm doc for more information (in particular,
+        # the svm_test.py is helpful).
+        print "*using default svm model parameters unless these are overwitten*"
+        if type(unlabeled_datasets) == type(""):
+            # then a string, presumably pointing to a single data file, was passed in
+            unlabeled_datasets  = [unlabeled_datasets]
+            
         self.params = [svm_parameter()  for d in unlabeled_datasets]
         self.unlabeled_datasets = unlabeled_datasets
         # initialize empty labeled datasets (i.e., all data is unlabeled to begin with)
@@ -36,6 +50,7 @@ class BaseLearner:
         self.models = models
         self.div_hash = {}
         self.dist_hash = {}
+        self.query_function = self.get_random_unlabeled_ids # base_learner just randomly picks examples
         self.k_hash = {}
         self.iter = 0
         
@@ -44,29 +59,20 @@ class BaseLearner:
         self.predict = self.cautious_predict
  
         
-    def active_learn(self, num_examples_to_label, query_function = None, num_to_label_at_each_iteration=10, 
-                                            rebuild_models_at_each_iter=True):
+    def active_learn(self, num_examples_to_label, num_to_label_at_each_iteration=10, 
+                                                rebuild_models_at_each_iter=True):
         ''''
         Core active learning loop. Uses the provided query function (query_function) to select a number of examples 
         (num_to_label_at_each_iteration) to label at each step, until the total number of examples requested 
         (num_examples_to_label) has been labeled. The models will be updated at each iteration.
         '''
-        if not query_function:
-            query_function = self.SIMPLE
-        
-        
         labeled_so_far = 0
         while labeled_so_far < num_examples_to_label:
-            
-            if self.is_osugi:
-                query_function = self.osugi_explore()
-            
             print "labeled %s out of %s" % (labeled_so_far, num_examples_to_label)
-            example_ids_to_label = query_function(num_to_label_at_each_iteration)
+            example_ids_to_label = self.query_function(num_to_label_at_each_iteration)
             # now remove the selected examples from the unlabeled sets and put them in the labeled sets.
             # if not ids are returned -- ie., if a void query_function is used --
-            # it is assumed the query function took care of labeling the examples selected. See, e.g.,
-            # the maximally_diverse_method
+            # it is assumed the query function took care of labeling the examples selected. 
             if example_ids_to_label:
                 self.label_instances_in_all_datasets(example_ids_to_label)
                 
@@ -125,11 +131,18 @@ class BaseLearner:
         '''
         A naive way of combining different models (built over different feature-spaces); if any othe models vote yes, then vote yes.
         When there is only on feature space, this reduces to simply "predict".
-        ''''
+        '''
         if self.models and len(self.models):
             return max([m.predict(x) for m,x in zip(self.models, X)])
         else:
             raise Exception, "No models have been initialized."
+        
+    def predict(self, X):
+        #
+        # overwrite this method if you want to aggregate the predictions over the existing
+        # feature spaces differently!
+        #
+        return self.cautious_predict(X)
         
     
     def pick_balanced_initial_training_set(self, k):
@@ -142,18 +155,6 @@ class BaseLearner:
         self.label_instances_in_all_datasets(all_ids_to_label)
         return all_ids_to_label
         
-        
-    def pick_initial_training_set(self, k, build_models=True):
-        '''
-        Select a set of training examples from the dataset(s) at random. This set will be used
-        to build the initial model. The **same training examples will be selected from each dataset.
-        '''
-        self.label_at_random(k)
-        if build_models:
-            print "building models..."
-            self.rebuild_models()
-            print "done."
-    
         
     def undersample_labeled_datasets(self, k=None):
         '''
@@ -182,26 +183,7 @@ class BaseLearner:
             raise Exception, "No labeled data has been provided!"   
         return copied_datasets
     
- 
-    def label_at_random(self, k):
-        '''
-        Select and 'label' a set of k examples from the (unlabeled) dataset(s) at random. 
-        '''
-        if self.unlabeled_datasets and len(self.unlabeled_datasets):
-            # remove a random subset of instances from one of our datasets (it doesn't matter which one)
-            removed_instances = self.unlabeled_datasets[0].get_and_remove_random_subset(k)
-            # add this set to the labeled data
-            self.labeled_datasets[0].add_instances(removed_instances)
-            # get the removed instance numbers
-            removed_instance_nums = [inst.id for inst in removed_instances]
-            # if there is more than one feature-space, remove the same instances from the remaining spaces (sets)
-            for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets[1:], self.labeled_datasets[1:]):
-                # now remove them from the corresponding sets
-                labeled_dataset.add_instances(unlabeled_dataset.remove_instances(removed_instance_nums))
-        else:
-            raise Exception, "No datasets have been provided!"
-        
-        
+         
     def get_random_unlabeled_ids(self, k):
         '''
         Returns a random set of k instance ids
