@@ -123,71 +123,66 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
                 upto = total_num_examples - hold_out_size
 
         print "using %s out of %s instances for test set" % (hold_out_size, total_num_examples)
-                
-        random_learner =base_learner.BaseLearner([d.copy() for d in datasets])
-        active_learner = simple_learner.SimpleLearner([d.copy() for d in datasets])
+        
+        #
+        # Here is where learners can be added for comparison
+        #
+        learners = [base_learner.BaseLearner([d.copy() for d in datasets]), simple_learner.SimpleLearner([d.copy() for d in datasets])]
+        pdb.set_trace()
+        output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 
-        activeout = open("%s//active_%s.txt" % (outpath, run), 'w')
-        randomout =  open("%s//random_%s.txt" % (outpath, run), 'w')
-
-        initial_f = random_learner.get_random_unlabeled_ids
+        # we arbitrarily pick the initial ids from the first learner; this doesn't matter, as we just use the instance ids
+        initial_f = learners[0].get_random_unlabeled_ids 
         init_size = cur_size
         if pick_balanced_initial_set:
-            initial_f = random_learner.pick_balanced_initial_training_set
+            initial_f = learners[0].pick_balanced_initial_training_set
             init_size = int(cur_size/2.0) # equal number from both classes
             
-       # you could call *.initial_f on any learner -- it just returns the ids to label initially. these should
-       # be the same for all learners.
+        # Again, you could call *.initial_f on any learner -- it just returns the ids to label initially. these should
+        # be the same for all learners.
         init_ids =initial_f(init_size)
-
-        random_learner.label_instances_in_all_datasets(init_ids)
-        active_learner.label_instances_in_all_datasets(init_ids)
         
+        # label instances and build initial models
+        for learner in learners:
+            learner.label_instances_in_all_datasets(init_ids)
+            learner.rebuild_models()
+            
         #
-        # Build initial models
+        # report initial results, to console and file.
         #
-        active_learner.rebuild_models()
-        random_learner.rebuild_models()
-
-        #
-        # report some results, to console and file.
-        print "\nactive learner:"
-        print "active learner has %s labeled examples" % len(active_learner.labeled_datasets[0].instances)
-        active_results = evaluate_learner_with_holdout(active_learner, test_datasets)
-        write_out_results(active_results, activeout, cur_size)
-
-        print "\nrandom learner:"
-        print "random learner has %s labeled examples" % len(random_learner.labeled_datasets[0].instances)
-        random_results = evaluate_learner_with_holdout(random_learner, test_datasets)
-        write_out_results(random_results, randomout, cur_size)
-    
+        report_results(learners, test_datasets, cur_size, output_files)
+                
 
         while cur_size <=upto:
-            # here's the actual active learning loop
+            #
+            # here's the main active learning loop
+            #
             print "\n\n***using %s examples out of %s***" % (cur_size, upto)
-            random_learner.active_learn(step_size, num_to_label_at_each_iteration = batch_size, rebuild_models_at_each_iter = False)
-            active_learner.active_learn(step_size, num_to_label_at_each_iteration=5)
+            for learner in learners:
+                learner.active_learn(step_size, num_to_label_at_each_iteration = batch_size)
+                            
             cur_size+=step_size
 
-            active_learner.rebuild_models(undersample_first=True)
-            random_learner.rebuild_models(undersample_first=True)
-
-          # report some results, to console and file.
-            print "\nactive learner:"
-            print "active learner has %s labeled examples" % len(active_learner.labeled_datasets[0].instances)
-            active_results = evaluate_learner_with_holdout(active_learner, test_datasets)
-            write_out_results(active_results, activeout, cur_size)
-
-            print "\nrandom learner:"
-            print "random learner has %s labeled examples" % len(random_learner.labeled_datasets[0].instances)
-            random_results = evaluate_learner_with_holdout(random_learner, test_datasets)
-            write_out_results(random_results, randomout, cur_size)
+            report_results(learners, test_datasets, cur_size, output_files)
 
         # close files
-        activeout.close()
-        randomout.close()
+        for output_file in output_files:
+            output_file.close()
         
-      
+     
+def report_results(learners, test_datasets, cur_size, output_files):
+    ''' 
+    Writes results for the learners, as evaluated over the test_dataset(s), to the console and the parametric
+    output files.
+    '''
+    learner_index = 0
+    for learner in learners:
+        print "results for %s @ %s labeled examples:" % (learner.name, len(learner.labeled_datasets[0].instances))
+        results = evaluate_learner_with_holdout(learner, test_datasets)
+        write_out_results(results, output_files[learner_index], cur_size)
+        learner_index+=1
+     
+     
 def box_if_string(s):
     '''
     If s is a string, returns a unary list [s]

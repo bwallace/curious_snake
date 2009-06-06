@@ -19,7 +19,7 @@ class SimpleLearner(BaseLearner):
         # most importantly we change the query function to SIMPLE here
         #
         self.query_function = self.SIMPLE
-
+        self.name = "SIMPLE"
         
     def SIMPLE(self, k):
         '''
