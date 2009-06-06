@@ -53,6 +53,7 @@ class BaseLearner:
         self.query_function = self.get_random_unlabeled_ids # base_learner just randomly picks examples
         self.k_hash = {}
         self.iter = 0
+        self.name = "Random"
         
         # default prediction function; only important if you're aggregating multiple feature spaces (see 
         # cautious_predict function documentation)
