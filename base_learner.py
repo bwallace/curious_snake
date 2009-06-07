@@ -64,10 +64,11 @@ class BaseLearner:
  
  
     def base_q_function(self, k):
+        ''' overwite this method with query function of choice (e.g., SIMPLE) '''
         raise Exception, "no query function provided!"
  
         
-    def active_learn(self, num_examples_to_label, num_to_label_at_each_iteration=10, 
+    def active_learn(self, num_examples_to_label, num_to_label_at_each_iteration=5, 
                                                 rebuild_models_at_each_iter=True):
         ''''
         Core active learning loop. Uses the provided query function (query_function) to select a number of examples 
@@ -95,30 +96,7 @@ class BaseLearner:
         self.rebuild_models()
         print "active learning loop completed; models rebuilt."
 
-       
-    def write_out_minorities(self, path, dindex=0):
-        outf = open(path, 'w')
-        outf.write(self.labeled_datasets[dindex].get_minority_examples().get_points_str())
-        outf.close()
-        
-    def write_out_labeled_data(self, path, dindex=0):
-        outf = open(path, 'w')
-        outf.write(self.labeled_datasets[dindex].get_points_str())
-        outf.close()
-        
-        
-    def unlabel_instances(self, inst_ids):
-        for inst_index in range(len(self.labeled_datasets[0].instances)):
-            if self.labeled_datasets[0].instances[inst_index].id in inst_ids:
-                for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
-                    labeled_dataset.instances[inst_index].lbl = labeled_dataset.instances[inst_index].real_label
-                    labeled_dataset.instances[inst_index].has_synthetic_label = False
-        
-        # now remove the instances and place them into the unlabeled set
-        for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
-            unlabeled_dataset.add_instances(labeled_dataset.remove_instances(inst_ids))
-
-                         
+                                 
     def label_all_data(self):
         '''
         Labels all the examples in the training set
@@ -234,7 +212,22 @@ class BaseLearner:
             self.models.append(svm_model(problem, param))
         print "done."         
 
+    def write_out_labeled_data(self, path, dindex=0):
+        outf = open(path, 'w')
+        outf.write(self.labeled_datasets[dindex].get_points_str())
+        outf.close()
 
+    def unlabel_instances(self, inst_ids):
+        for inst_index in range(len(self.labeled_datasets[0].instances)):
+            if self.labeled_datasets[0].instances[inst_index].id in inst_ids:
+                for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
+                    labeled_dataset.instances[inst_index].lbl = labeled_dataset.instances[inst_index].real_label
+                    labeled_dataset.instances[inst_index].has_synthetic_label = False
+
+        # now remove the instances and place them into the unlabeled set
+        for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
+            unlabeled_dataset.add_instances(labeled_dataset.remove_instances(inst_ids))
+                
     def _get_dist_from_l(self, model, data, x):
         min_dist = None
         for y in data.instances:
