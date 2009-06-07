@@ -57,6 +57,7 @@ import math
 import dataset
 import base_learner
 import simple_learner
+import random_learner
 import svm
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval =None, upto=None, step_size = 25, 
@@ -81,11 +82,12 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
     pick_balanced_initial_set -- if True, the initial train dataset will be built over an equal number (initial_size/2) of both classes.
     num_runs -- this many runs will be performed
     '''
-    
+  
     for run in range(num_runs):
         print "\n********\non run %s" % run
+ 
         print data_paths
-        cur_size = initial_size # set to initial size for first iteration
+        num_labels_so_far = initial_size # set to initial size for first iteration
 
         if not os.path.isdir(outpath):
             os.mkdir(outpath)
@@ -105,7 +107,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
                 upto = total_num_examples
         else:
             # other wise, we copy the first (even if there multiple datasets, it won't matter, as we're just using 
-            #the labels) and pick random examples
+            # the labels) and pick random examples
             d_for_eval = None
             d_for_eval = datasets[0].copy()
             hold_out_size = int(hold_out_p * total_num_examples)
@@ -127,18 +129,20 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         #
         # Here is where learners can be added for comparison
         #
-        learners = [base_learner.BaseLearner([d.copy() for d in datasets]), simple_learner.SimpleLearner([d.copy() for d in datasets])]
-        pdb.set_trace()
+        learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
+                    simple_learner.SimpleLearner([d.copy() for d in datasets])]
+                
+  
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 
         # we arbitrarily pick the initial ids from the first learner; this doesn't matter, as we just use the instance ids
         initial_f = learners[0].get_random_unlabeled_ids 
-        init_size = cur_size
+        init_size = num_labels_so_far
         if pick_balanced_initial_set:
             initial_f = learners[0].pick_balanced_initial_training_set
-            init_size = int(cur_size/2.0) # equal number from both classes
+            init_size = int(num_labels_so_far/2.0) # equal number from both classes
             
-        # Again, you could call *.initial_f on any learner -- it just returns the ids to label initially. these should
+        # Again, you could call *.initial_f on any learner -- it just returns the ids to label initially. these will
         # be the same for all learners.
         init_ids =initial_f(init_size)
         
@@ -147,23 +151,35 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
             learner.label_instances_in_all_datasets(init_ids)
             learner.rebuild_models()
             
-        #
         # report initial results, to console and file.
-        #
-        report_results(learners, test_datasets, cur_size, output_files)
-                
-
-        while cur_size <=upto:
+        report_results(learners, test_datasets, num_labels_so_far, output_files)
+              
+        first_iter = True
+        while num_labels_so_far <= upto - step_size:
             #
             # here's the main active learning loop
             #
-            print "\n\n***using %s examples out of %s***" % (cur_size, upto)
+            cur_step_size = step_size
+            cur_batch_size = batch_size
+            if first_iter:
+                # here we account for the initial labeled dataset size. for example, suppose
+                # the step_size is set to 25 (we want to report results every 25 labels), 
+                # but the initial size was 2; then we want to label 23 on the first iteration
+                # so that we report results when 25 total labels have been provided
+                cur_step_size = step_size - num_labels_so_far if num_labels_so_far <= step_size else step_size - (num_labels_so_far - step_size) 
+                # in general, step_size is assumed to be a multiple of batch_size, for the first iteration, 
+                # when we're catching up to to the step_size (as outlined above), we set the
+                # batch_size to 1 to make sure this condition holds.
+                cur_batch_size = 1 
+                first_iter = False
+            
             for learner in learners:
-                learner.active_learn(step_size, num_to_label_at_each_iteration = batch_size)
+                learner.active_learn(cur_step_size, num_to_label_at_each_iteration = cur_batch_size)
                             
-            cur_size+=step_size
-
-            report_results(learners, test_datasets, cur_size, output_files)
+            num_labels_so_far += cur_step_size
+            print "\n***labeled %s examples out of %s so far***" % (num_labels_so_far, upto)
+            
+            report_results(learners, test_datasets, num_labels_so_far, output_files)
 
         # close files
         for output_file in output_files:
@@ -177,7 +193,7 @@ def report_results(learners, test_datasets, cur_size, output_files):
     '''
     learner_index = 0
     for learner in learners:
-        print "results for %s @ %s labeled examples:" % (learner.name, len(learner.labeled_datasets[0].instances))
+        print "\nresults for %s @ %s labeled examples:" % (learner.name, len(learner.labeled_datasets[0].instances))
         results = evaluate_learner_with_holdout(learner, test_datasets)
         write_out_results(results, output_files[learner_index], cur_size)
         learner_index+=1
@@ -192,9 +208,10 @@ def box_if_string(s):
         return [s]
     return s
         
+        
 def evaluate_learner_with_holdout(learner, test_sets):
     '''
-    If you're not considering a "finite pool" problem, this is really the correct way to evaluate the trained classifiers. 
+    If you're not considering a "finite pool" problem, this is the correct way to evaluate the trained classifiers. 
     
     @params
     learner -- the learner to be evaluated
@@ -203,9 +220,6 @@ def evaluate_learner_with_holdout(learner, test_sets):
                             method in, e.g., base_learner, for more.
     '''
     results={}
-    pos_count = learner.labeled_datasets[0].number_of_minority_examples()
-    neg_count = learner.labeled_datasets[0].number_of_majority_examples()
-    print "positives found during learning: %s\nnegatives found during learning: %s" % (pos_count, neg_count)
     print "evaluating learner over %s instances." % len(learner.unlabeled_datasets[0].instances)
     fns = 0
     predictions = []
@@ -221,17 +235,7 @@ def evaluate_learner_with_holdout(learner, test_sets):
         predictions.append(prediction)
     
     conf_mat =  svm.evaluate_predictions(predictions, true_labels)
-    print "confusion matrix:"
-    print conf_mat
-    results["npos"] = pos_count
-    results["confusion_matrix"] = conf_mat
-    results["accuracy"] = float (conf_mat["tp"] + conf_mat["tn"]) / float(sum([conf_mat[key] for key in conf_mat.keys()]))
-    if float(conf_mat["tp"]) == 0:
-        results["sensitivity"] = 0
-    else:
-        results["sensitivity"] = float(conf_mat["tp"]) / float(conf_mat["tp"] + conf_mat["fn"])
-    print "sensitivity: %s" % results["sensitivity"]
-    print "accuracy: %s" % results["accuracy"]
+    _calculate_metrics(conf_mat, results)
     return results
     
     
@@ -242,8 +246,8 @@ def evaluate_learner(learner, include_labeled_data_in_metrics=True):
     
     @parameters
     include_labeled_data_in_metrics -- If this is true, the (labeled) examples in the learner's labeled_datasets field
-                                                                                will be included in evaluation. Useful for 'finite' pool learniner; otherwise misleading.
-                                                                                In general, one should use a holdout.
+                                                                                will be included in evaluation. Useful for 'finite' pool learniner; 
+                                                                                otherwise misleading. In general, one should use a holdout.
     '''
     tps, tns, fps = 0,0,0
     results = {}
@@ -280,6 +284,11 @@ def evaluate_learner(learner, include_labeled_data_in_metrics=True):
     conf_mat["tp"]+= tps
     conf_mat["tn"]+= tns
     conf_mat["fp"]+= fps
+    _calculate_metrics(conf_mat, results)
+    return results
+    
+    
+def _calculate_metrics(conf_mat, results):
     print "confusion matrix:"
     print conf_mat
     results["confusion_matrix"] = conf_mat
@@ -288,12 +297,13 @@ def evaluate_learner(learner, include_labeled_data_in_metrics=True):
         results["sensitivity"] = 0
     else:
         results["sensitivity"] = float(conf_mat["tp"]) / float(conf_mat["tp"] + conf_mat["fn"])
-    print "sensitivity: %s" % results["sensitivity"]
-    print "accuracy: %s" % results["accuracy"]
-    return results
-    
+    results["specificity"] = float(conf_mat["tn"]) / float(conf_mat["tn"] + conf_mat["fp"])
+    for k in results.keys():
+        if k != "confusion_matrix":
+            print "%s: %s" % (k, results[k])    
+
      
 def write_out_results(results, outf, size):
-    write_these_out = [ size, results["accuracy"], results["sensitivity"], results["npos"]]
+    write_these_out = [size, results["accuracy"], results["sensitivity"], results["specificity"]]
     outf.write(",".join([str(s) for s in write_these_out]))
     outf.write("\n")
