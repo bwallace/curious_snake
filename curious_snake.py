@@ -146,7 +146,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         # label instances and build initial models
         for learner in learners:
             learner.label_instances_in_all_datasets(init_ids)
-            learner.rebuild_models(undersample_first=True)
+            learner.rebuild_models()
             
         # report initial results, to console and file.
         report_results(learners, test_datasets, num_labels_so_far, output_files)
@@ -224,7 +224,7 @@ def evaluate_learner_with_holdout(learner, test_sets):
     # the labels are assumed to be the same; thus we only use the labels for the first dataset
     true_labels = test_sets[0].get_labels()
    
-    # loop over all of the examples, and feed to the "cautious_classify" method 
+    # loop over all of the examples, and feed to the "predict" method 
     # the corresponding point in each feature-space
     for example_index in range(len(point_sets[0])):
         # hand the predict method a list of representations of x; one per feature space/model
