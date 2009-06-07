@@ -33,6 +33,8 @@ class BaseLearner:
      in, as is often the case, simply pass around unary lists.  
     ''' 
     
+    # TODO add (optional?) schohn/general stopping criterion implementation  -- where should this go?
+    
     def __init__(self, unlabeled_datasets = [], models=None):
         '''
         unlabeled_datasets should be either (1) a string pointing to a single data file (e.g., "mydata.txt") or (2) a list of strings
@@ -60,9 +62,9 @@ class BaseLearner:
         
         # default prediction function; only important if you're aggregating multiple feature spaces (see 
         # cautious_predict function documentation)
-        self.predict = self.cautious_predict
+        self.predict = self.majority_predict
  
- 
+    
     def base_q_function(self, k):
         ''' overwite this method with query function of choice (e.g., SIMPLE) '''
         raise Exception, "no query function provided!"
@@ -93,7 +95,7 @@ class BaseLearner:
 
             labeled_so_far += num_to_label_at_each_iteration
         
-        self.rebuild_models()
+        self.rebuild_models(undersample_first=True)
         print "active learning loop completed; models rebuilt."
 
                                  
@@ -113,6 +115,22 @@ class BaseLearner:
         for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
             labeled_dataset.add_instances(unlabeled_dataset.remove_instances(inst_ids))  
     
+    def majority_predict(self, X):
+        '''
+        If there are multiple models built over different feature spaces, this predicts a label for an instance based on the
+        majority vote of these classifiers -- otherwise this is simply "predict"
+        '''
+        votes = []
+        if self.models and len(self.models):
+            for m,x in zip(self.models, X):
+                votes.append(m.predict(x))
+            vote_set = list(set(votes))
+            count_in_list = lambda x: votes.count(x)
+            return vote_set[_arg_max(vote_set, count_in_list)]
+        else:
+            raise Exception, "No models have been initialized."
+        
+        
     def cautious_predict(self, X):
         '''
         A naive way of combining different models (built over different feature-spaces); if any othe models vote yes, then vote yes.
@@ -183,16 +201,10 @@ class BaseLearner:
         return selected_ids
         
 
-    def rebuild_models(self, undersample_first=False, undersample_cleverly=False, include_synthetics=True):
+    def rebuild_models(self, undersample_first=False, undersample_cleverly=False):
         '''
         Rebuilds all models over the current labeled datasets.
         '''    
-        if not include_synthetics:
-            print "removing synthetics from training data!"
-            datasets = self.get_non_synthetics()
-        else:
-            print "including synthetics in training data!"
-            
         if undersample_first:
             print "undersampling before building models.."
             if undersample_cleverly:
@@ -207,7 +219,7 @@ class BaseLearner:
         print "training model(s) on %s instances" % len(datasets[0].instances)
         self.models = []
         for dataset, param in zip(datasets, self.params):
-            samples, labels = dataset.get_samples_and_labels(include_synthetics=include_synthetics)
+            samples, labels = dataset.get_samples_and_labels()
             problem = svm_problem(labels, samples)
             self.models.append(svm_model(problem, param))
         print "done."         
@@ -255,7 +267,15 @@ class BaseLearner:
             self.div_hash[(x.id, y.id)] = model.compute_cos_between_examples(x.point, y.point)
         return self.div_hash[(x.id, y.id)]
     
-
-
+    
+def _arg_max(ls, f):
+    ''' Returns the index for x in ls for which f(x) is maximal w.r.t. the rest of the list '''
+    return_index = 0
+    max_val = f(ls[0])
+    for i in range(len(ls)-1):
+        if f(ls[i+1]) > max_val:
+            return_index = i
+            max_val = f(ls[i+1])
+    return return_index
 
         
