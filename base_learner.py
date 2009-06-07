@@ -34,11 +34,15 @@ class BaseLearner:
     ''' 
     
     def __init__(self, unlabeled_datasets = [], models=None):
+        '''
+        unlabeled_datasets should be either (1) a string pointing to a single data file (e.g., "mydata.txt") or (2) a list of strings
+        pointing to multiple data files that represent the same data with different feature spaces. For more on the data format,
+        consult the doc or see the samples.
+        '''
         # params correspond to each of the respective models (one if we're in a single feature space)
         # these specify things like what kind of kernel to use. here we just use the default, but
         # *you'll probably want to overwrite this* in your subclass. see the libsvm doc for more information (in particular,
         # the svm_test.py is helpful).
-        print "*using default svm model parameters unless these are overwitten*"
         if type(unlabeled_datasets) == type(""):
             # then a string, presumably pointing to a single data file, was passed in
             unlabeled_datasets  = [unlabeled_datasets]
@@ -50,14 +54,17 @@ class BaseLearner:
         self.models = models
         self.div_hash = {}
         self.dist_hash = {}
-        self.query_function = self.get_random_unlabeled_ids # base_learner just randomly picks examples
+        self.query_function = self.base_q_function # throws exception if not overridden 
         self.k_hash = {}
-        self.iter = 0
-        self.name = "Random"
+        self.name = "Base"
         
         # default prediction function; only important if you're aggregating multiple feature spaces (see 
         # cautious_predict function documentation)
         self.predict = self.cautious_predict
+ 
+ 
+    def base_q_function(self, k):
+        raise Exception, "no query function provided!"
  
         
     def active_learn(self, num_examples_to_label, num_to_label_at_each_iteration=10, 
