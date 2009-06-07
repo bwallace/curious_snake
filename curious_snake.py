@@ -60,14 +60,16 @@ import simple_learner
 import random_learner
 import svm
 
-def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval =None, upto=None, step_size = 25, 
-                                                                  initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, num_runs=10):
+def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
+                                                                  initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, 
+                                                                  num_runs=10):
     '''
     This method demonstrates how to use the active learning framework, and is also a functional routine for comparing learners. Basically,
     a number of runs will be performed, the active learning methods will be evaluated at each step, and results will be reported. The results
     for each run will be dumped to a text files, which then can be combined (e.g., averaged), elsewhere.
     
     @parameters
+    --
     data_paths -- this is either a list (pointing to multiple feature spaces for the same instances) or a string pointing to a single data file (this will be
                                 the typical case). e.g., data_paths = "mydata.txt". curious_snake uses a sparse-formated weka-like format, documented elsewhere.
     outpath -- this is a directory under which all of the results will be dumped.
@@ -82,7 +84,6 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
     pick_balanced_initial_set -- if True, the initial train dataset will be built over an equal number (initial_size/2) of both classes.
     num_runs -- this many runs will be performed
     '''
-  
     for run in range(num_runs):
         print "\n********\non run %s" % run
  
@@ -94,7 +95,6 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         
         # if a string (pointing to a single dataset) is passed in, box it in a list
         data_paths = box_if_string(data_paths)
-        
         datasets = [dataset.build_dataset_from_file(f) for f in data_paths]
         total_num_examples = len(datasets[0].instances)
         
@@ -108,23 +108,21 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         else:
             # other wise, we copy the first (even if there multiple datasets, it won't matter, as we're just using 
             # the labels) and pick random examples
-            d_for_eval = None
-            d_for_eval = datasets[0].copy()
             hold_out_size = int(hold_out_p * total_num_examples)
             test_instances = random.sample(datasets[0].instances, hold_out_size)
-            test_set_instance_ids = [inst.id for inst in test_instances]
-            test_lbls = d_for_eval.remove_instances(test_set_instance_ids)
+            test_instance_ids = [inst.id for inst in test_instances]
+            # now remove them from the dataset(s)
             for d in datasets:
-                cur_test_dataset = dataset.dataset(d.remove_instances(test_set_instance_ids))
-                for inst, gold_standard_inst in zip(cur_test_dataset.instances, test_lbls):
-                    inst.label = inst.real_label = gold_standard_inst.label
-                    
+                cur_test_dataset = dataset.dataset(d.remove_instances(test_instance_ids))                    
                 test_datasets.append(cur_test_dataset)
+            
             # if no upper bound was passed in, use the whole pool U
             if upto is None:
                 upto = total_num_examples - hold_out_size
-
+                
         print "using %s out of %s instances for test set" % (hold_out_size, total_num_examples)
+        print "U has cardinality: %s" % datasets[0].size()
+        
         
         #
         # Here is where learners can be added for comparison
@@ -132,7 +130,6 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
                     simple_learner.SimpleLearner([d.copy() for d in datasets])]
                 
-  
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 
         # we arbitrarily pick the initial ids from the first learner; this doesn't matter, as we just use the instance ids
@@ -149,7 +146,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         # label instances and build initial models
         for learner in learners:
             learner.label_instances_in_all_datasets(init_ids)
-            learner.rebuild_models()
+            learner.rebuild_models(undersample_first=True)
             
         # report initial results, to console and file.
         report_results(learners, test_datasets, num_labels_so_far, output_files)
@@ -230,60 +227,11 @@ def evaluate_learner_with_holdout(learner, test_sets):
     # loop over all of the examples, and feed to the "cautious_classify" method 
     # the corresponding point in each feature-space
     for example_index in range(len(point_sets[0])):
-        # hand the cautious_predict method a list of representations of x; one per feature space/model
+        # hand the predict method a list of representations of x; one per feature space/model
         prediction = learner.predict([point_sets[feature_space_index][example_index] for feature_space_index in range(len(point_sets))])
         predictions.append(prediction)
     
     conf_mat =  svm.evaluate_predictions(predictions, true_labels)
-    _calculate_metrics(conf_mat, results)
-    return results
-    
-    
-def evaluate_learner(learner, include_labeled_data_in_metrics=True):
-    '''
-    Returns a dictionary containing various metrics for learner performance, as measured over the
-    examples in the unlabeled_datasets belonging to the learner.
-    
-    @parameters
-    include_labeled_data_in_metrics -- If this is true, the (labeled) examples in the learner's labeled_datasets field
-                                                                                will be included in evaluation. Useful for 'finite' pool learniner; 
-                                                                                otherwise misleading. In general, one should use a holdout.
-    '''
-    tps, tns, fps = 0,0,0
-    results = {}
-    # first we count the number of true positives and true negatives discovered in learning. this is so we do not
-    # unfairly penalize active learning strategies for finding lots of the minority class during training.
-    if include_labeled_data_in_metrics:
-        tps = learner.labeled_datasets[0].number_of_minority_examples(use_real_label=True, include_synthetics=False)
-        tns = learner.labeled_datasets[0].number_of_majority_examples()
-        fps = learner.labeled_datasets[0].number_of_false_minorities()
-    results["npos"] = tps
-    
-    print "positives found during learning: %s\nnegatives found during learning: %s" % (tps, tns)
-    print "number of *synthetics* used in training: %s" % len(learner.labeled_datasets[0].get_synthetic_ids())
-    print "evaluating learner over %s instances." % len(learner.unlabeled_datasets[0].instances)
-    fns = 0
-    predictions = []
-
-    # get the raw points out for prediction
-    point_sets = [dataset.get_samples() for dataset in learner.unlabeled_datasets]
-    # the labels are assumed to be the same; thus we only use the labels for the first dataset
-    true_labels = learner.unlabeled_datasets[0].get_labels()
-    # loop over all of the examples, and feed to the "cautious_classify" method 
-    # the corresponding point in each feature-space
-    for example_index in range(len(point_sets[0])):
-        # hand the cautious_predict method a list of representations of x; one per feature space/model
-        prediction = learner.predict([point_sets[feature_space_index][example_index] for feature_space_index in range(len(point_sets))])
-        predictions.append(prediction)
-
-        
-    conf_mat =  svm.evaluate_predictions(predictions, true_labels)
-    # 
-    # evaluate_predictions does not include the instances found during training!
-    #
-    conf_mat["tp"]+= tps
-    conf_mat["tn"]+= tns
-    conf_mat["fp"]+= fps
     _calculate_metrics(conf_mat, results)
     return results
     
@@ -301,8 +249,8 @@ def _calculate_metrics(conf_mat, results):
     for k in results.keys():
         if k != "confusion_matrix":
             print "%s: %s" % (k, results[k])    
-
-     
+    
+    
 def write_out_results(results, outf, size):
     write_these_out = [size, results["accuracy"], results["sensitivity"], results["specificity"]]
     outf.write(",".join([str(s) for s in write_these_out]))
