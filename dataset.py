@@ -31,18 +31,20 @@ def line_to_instance(l, id):
     l = l.replace("\r\n", "")
     l = l.replace("\n", "")
     l_split = l.split(" ")
+    l_split = [l for l in l_split if l != '']
     try:
         label = eval(l_split[0])
     except:
         pdb.set_trace()
-    # remove new line characters; these were causing headaches in certain cases
     point = l_split[1:]
     dict_point = {}
-    for coord, value in [dimension.split(":") for dimension in point if not point[0]=='']:
+    
+    for coord, value in [dimension.split(":") for dimension in point if point[0] != '']:
       try:
           dict_point[eval(coord)] = eval(value)
       except:
           pdb.set_trace()
+
 
     return instance(id, dict_point, label)
 
