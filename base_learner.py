@@ -95,7 +95,7 @@ class BaseLearner:
 
             labeled_so_far += num_to_label_at_each_iteration
         
-        self.rebuild_models(undersample_first=True)
+        self.rebuild_models()
         print "active learning loop completed; models rebuilt."
 
                                  
@@ -201,18 +201,14 @@ class BaseLearner:
         return selected_ids
         
 
-    def rebuild_models(self, undersample_first=False, undersample_cleverly=False):
+    def rebuild_models(self, undersample_first=False):
         '''
         Rebuilds all models over the current labeled datasets.
         '''    
         if undersample_first:
             print "undersampling before building models.."
-            if undersample_cleverly:
-                print "undersampling cleverly!"
-                datasets = self.undersample_labeled_datasets_cleverly()
-            else:
-                datasets = self.undersample_labeled_datasets()
-                print "done."
+            datasets = self.undersample_labeled_datasets()
+            print "done."
         else:
             datasets = self.labeled_datasets
             
@@ -224,6 +220,7 @@ class BaseLearner:
             self.models.append(svm_model(problem, param))
         print "done."         
 
+
     def write_out_labeled_data(self, path, dindex=0):
         outf = open(path, 'w')
         outf.write(self.labeled_datasets[dindex].get_points_str())
@@ -233,7 +230,7 @@ class BaseLearner:
         for inst_index in range(len(self.labeled_datasets[0].instances)):
             if self.labeled_datasets[0].instances[inst_index].id in inst_ids:
                 for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
-                    labeled_dataset.instances[inst_index].lbl = labeled_dataset.instances[inst_index].real_label
+                    labeled_dataset.instances[inst_index].lbl = labeled_dataset.instances[inst_index].label
                     labeled_dataset.instances[inst_index].has_synthetic_label = False
 
         # now remove the instances and place them into the unlabeled set
