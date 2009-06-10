@@ -15,13 +15,7 @@ import sys
 import random
 import math
 import dataset 
-import cluster
 import numpy
-import smote
-path_to_libsvm = os.path.join(os.getcwd(), "libsvm", "python")
-sys.path.append(path_to_libsvm)
-import svm
-from svm import *
 
 class BaseLearner:
     '''
@@ -35,29 +29,22 @@ class BaseLearner:
     
     # TODO add (optional?) schohn/general stopping criterion implementation  -- where should this go?
     
-    def __init__(self, unlabeled_datasets = [], models=None):
+    def __init__(self, unlabeled_datasets = [], models = None):
         '''
         unlabeled_datasets should be either (1) a string pointing to a single data file (e.g., "mydata.txt") or (2) a list of strings
         pointing to multiple data files that represent the same data with different feature spaces. For more on the data format,
         consult the doc or see the samples.
         '''
-        # params correspond to each of the respective models (one if we're in a single feature space)
-        # these specify things like what kind of kernel to use. here we just use the default, but
-        # *you'll probably want to overwrite this* in your subclass. see the libsvm doc for more information (in particular,
-        # the svm_test.py is helpful).
         if type(unlabeled_datasets) == type(""):
             # then a string, presumably pointing to a single data file, was passed in
             unlabeled_datasets  = [unlabeled_datasets]
             
-        self.params = [svm_parameter()  for d in unlabeled_datasets]
         self.unlabeled_datasets = unlabeled_datasets
         # initialize empty labeled datasets (i.e., all data is unlabeled to begin with)
         self.labeled_datasets = [dataset.dataset([]) for d in unlabeled_datasets]
         self.models = models
-        self.div_hash = {}
-        self.dist_hash = {}
+
         self.query_function = self.base_q_function # throws exception if not overridden 
-        self.k_hash = {}
         self.name = "Base"
         
         # default prediction function; only important if you're aggregating multiple feature spaces (see 
@@ -65,15 +52,10 @@ class BaseLearner:
         self.predict = self.majority_predict
  
     
-    def base_q_function(self, k):
-        ''' overwite this method with query function of choice (e.g., SIMPLE) '''
-        raise Exception, "no query function provided!"
- 
-        
     def active_learn(self, num_examples_to_label, num_to_label_at_each_iteration=5, 
                                                 rebuild_models_at_each_iter=True):
         ''''
-        Core active learning loop. Uses the provided query function (query_function) to select a number of examples 
+        Core active learning routine. Here the learner uses its query function to select a number of examples 
         (num_to_label_at_each_iteration) to label at each step, until the total number of examples requested 
         (num_examples_to_label) has been labeled. The models will be updated at each iteration.
         '''
@@ -86,7 +68,7 @@ class BaseLearner:
             # it is assumed the query function took care of labeling the examples selected. 
             if example_ids_to_label:
                 self.label_instances_in_all_datasets(example_ids_to_label)
-                
+
             if rebuild_models_at_each_iter:
                 self.rebuild_models()
                 print "models rebuilt with %s labeled examples" % len(self.labeled_datasets[0].instances)    
@@ -94,9 +76,14 @@ class BaseLearner:
                 print "model has %s labeled examples thus far (not rebuilding models @ each iter)" % len(self.labeled_datasets[0].instances)
 
             labeled_so_far += num_to_label_at_each_iteration
-        
+
         self.rebuild_models()
         print "active learning loop completed; models rebuilt."
+            
+    
+    def base_q_function(self, k):
+        ''' overwite this method with query function of choice (e.g., SIMPLE) '''
+        raise Exception, "no query function provided!"
 
                                  
     def label_all_data(self):
@@ -105,6 +92,7 @@ class BaseLearner:
         '''
         inst_ids = [inst.id for inst in self.unlabeled_datasets[0].instances]
         self.label_instances_in_all_datasets(inst_ids)
+        
         
     def label_instances_in_all_datasets(self, inst_ids):
         '''
@@ -115,40 +103,8 @@ class BaseLearner:
         for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
             labeled_dataset.add_instances(unlabeled_dataset.remove_instances(inst_ids))  
     
-    def majority_predict(self, X):
-        '''
-        If there are multiple models built over different feature spaces, this predicts a label for an instance based on the
-        majority vote of these classifiers -- otherwise this is simply "predict"
-        '''
-        votes = []
-        if self.models and len(self.models):
-            for m,x in zip(self.models, X):
-                votes.append(m.predict(x))
-            vote_set = list(set(votes))
-            count_in_list = lambda x: votes.count(x)
-            return vote_set[_arg_max(vote_set, count_in_list)]
-        else:
-            raise Exception, "No models have been initialized."
+
         
-        
-    def cautious_predict(self, X):
-        '''
-        A naive way of combining different models (built over different feature-spaces); if any othe models vote yes, then vote yes.
-        When there is only on feature space, this reduces to simply "predict".
-        '''
-        if self.models and len(self.models):
-            return max([m.predict(x) for m,x in zip(self.models, X)])
-        else:
-            raise Exception, "No models have been initialized."
-        
-    def predict(self, X):
-        #
-        # overwrite this method if you want to aggregate the predictions over the existing
-        # feature spaces differently!
-        #
-        return self.cautious_predict(X)
-        
-    
     def pick_balanced_initial_training_set(self, k):
         '''
         Picks k + and k - examples at random for bootstrap set.
@@ -202,23 +158,7 @@ class BaseLearner:
         
 
     def rebuild_models(self, undersample_first=False):
-        '''
-        Rebuilds all models over the current labeled datasets.
-        '''    
-        if undersample_first:
-            print "undersampling before building models.."
-            datasets = self.undersample_labeled_datasets()
-            print "done."
-        else:
-            datasets = self.labeled_datasets
-            
-        print "training model(s) on %s instances" % len(datasets[0].instances)
-        self.models = []
-        for dataset, param in zip(datasets, self.params):
-            samples, labels = dataset.get_samples_and_labels()
-            problem = svm_problem(labels, samples)
-            self.models.append(svm_model(problem, param))
-        print "done."         
+        raise Exception, "No models provided! (BaseLearner)"
 
 
     def write_out_labeled_data(self, path, dindex=0):
@@ -236,33 +176,7 @@ class BaseLearner:
         # now remove the instances and place them into the unlabeled set
         for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
             unlabeled_dataset.add_instances(labeled_dataset.remove_instances(inst_ids))
-                
-    def _get_dist_from_l(self, model, data, x):
-        min_dist = None
-        for y in data.instances:
-            if not (x.id, y.id) in self.dist_hash:
-                self.dist_hash[(x.id, y.id)] = model.compute_dist_between_examples(x.point, y.point)
-            if not min_dist or self.dist_hash[(x.id, y.id)] < min_dist:
-                min_dist = self.dist_hash[(x.id, y.id)]
-        return min_dist
-        
-    
-    def _compute_div(self, model, data, x):
-        sum = 0.0
-        for y in data.instances:
-            # have we already computed this?
-            if not (x.id, y.id) in self.div_hash:
-                # if not, compute the function and add to the hash
-                self.div_hash[(x.id, y.id)] = model.compute_cos_between_examples(x.point, y.point)
-            sum+= self.div_hash[(x.id, y.id)]
-        return sum
-    
-    
-                      
-    def _compute_cos(self, model, x, y):
-        if not (x.id, y.id) in self.div_hash:
-            self.div_hash[(x.id, y.id)] = model.compute_cos_between_examples(x.point, y.point)
-        return self.div_hash[(x.id, y.id)]
+
     
     
 def _arg_max(ls, f):

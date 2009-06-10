@@ -55,14 +55,14 @@ import pdb
 import os
 import math
 import dataset
-import base_learner
-import simple_learner
-import random_learner
-import svm
+import learners.base_learner
+import learners.simple_learner
+import learners.random_learner
+
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
-                                                                  initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, 
-                                                                  num_runs=10):
+                                                  initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, 
+                                                  num_runs=10):
     '''
     This method demonstrates how to use the active learning framework, and is also a functional routine for comparing learners. Basically,
     a number of runs will be performed, the active learning methods will be evaluated at each step, and results will be reported. The results
@@ -231,11 +231,31 @@ def evaluate_learner_with_holdout(learner, test_sets):
         prediction = learner.predict([point_sets[feature_space_index][example_index] for feature_space_index in range(len(point_sets))])
         predictions.append(prediction)
     
-    conf_mat =  svm.evaluate_predictions(predictions, true_labels)
+    conf_mat =  _evaluate_predictions(predictions, true_labels)
     _calculate_metrics(conf_mat, results)
     return results
     
+ 
+def _evaluate_predictions(predictions, true_labels):
+    conf_mat = {"tp":0, "fp":0, "tn":0, "fn":0}
+    for prediction, true_label in zip(predictions, true_labels):
+        if prediction == true_label:
+            # then the learner was correct
+            if true_label > 0:
+                conf_mat["tp"]+=1
+            else:
+                conf_mat["tn"]+=1
+        else:
+            # then the learner was mistaken
+            if true_label > 0:
+                # actual label was 1; predicted -1
+                conf_mat["fn"]+=1
+            else:
+                # actual label was -1; predicted 1
+                conf_mat["fp"]+=1
+    return conf_mat
     
+           
 def _calculate_metrics(conf_mat, results):
     print "confusion matrix:"
     print conf_mat

@@ -1,15 +1,15 @@
 import pdb
-import base_learner
-from base_learner import BaseLearner
-from base_learner import *
+import base_svm_learner
+from base_svm_learner import BaseSVMLearner
+from base_svm_learner import *
 
-class SimpleLearner(BaseLearner):
+class SimpleLearner(BaseSVMLearner):
     
     def __init__(self, unlabeled_datasets = [], models=None):
         #
         # call the BaseLearner constructor to initialize various globals and process the
         # datasets, etc.; of course, these can subsequently be overwritten.
-        BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets, models=models)
+        BaseSVMLearner.__init__(self, unlabeled_datasets=unlabeled_datasets, models=models)
         
         # ovewrite svm parameters here 
         self.params = [svm_parameter()  for d in unlabeled_datasets]
@@ -20,6 +20,7 @@ class SimpleLearner(BaseLearner):
         #
         self.query_function = self.SIMPLE
         self.name = "SIMPLE"
+        
         
     def SIMPLE(self, k):
         '''

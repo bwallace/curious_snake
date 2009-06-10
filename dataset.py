@@ -48,7 +48,6 @@ def line_to_instance(l, id):
 
     return instance(id, dict_point, label)
 
-
         
 class instance:
     '''
