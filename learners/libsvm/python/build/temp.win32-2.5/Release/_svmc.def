@@ -1,0 +1,3 @@
+LIBRARY _svmc.pyd
+EXPORTS
+init_svmc

@@ -1,0 +1,31 @@
+Re-building libsvm/python interface
+
+Overview: Hack the libsvm code. Most of this is in the svm.cpp code. Re-compile, re-swig. 
+
+Example: Getting access (from Python) to Rho. 
+
+in svm.cpp, add:
+
+int svm_get_model_num_coefs(struct svm_model *model)
+{
+  return model->l;
+}
+
+Add this to the header (svm.h):
+
+int svm_get_model_num_coefs(struct svm_model *model);
+
+COPY THE HEADE FILE INTO THE PYTHON DIRECTORY
+
+Make sure nmake is on your path. I.e., type:
+>"C:\Program Files\Microsoft Visual Studio 8\VC\bin\vcvars32.bat"
+Then:
+>nmake -f Makefile.win clean
+>nmake -f Makefile.win all (can also use "python" here)
+
+Now, in the "Python" directory, add:
+"int svm_get_model_num_coefs(struct svm_model *model);"
+to the svmc.i (interface) file.
+
+>swig -python svmc.i
+>python setup.py build -cmingw32 build_ext --inplace
