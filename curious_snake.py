@@ -183,8 +183,8 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         for output_file in output_files:
             output_file.close()
     
-        # post-experimental reporting
-        post_runs_report(outpath, [l.name for l in learners], num_runs)
+    # post-experimental reporting
+    post_runs_report(outpath, [l.name for l in learners], num_runs)
            
 def report_results(learners, test_datasets, cur_size, output_files):
     ''' 
@@ -282,27 +282,40 @@ def write_out_results(results, outf, size):
     
 def post_runs_report(base_path, learner_labels, n):    
     averages = avg_results(base_path, learner_labels, n)
-
+    pdb.set_trace()
     
-def avg_results(base_path, learner_names, n, x_index = 0, y_index = 1 ):
+def avg_results(base_path, learner_names, n, size_index = 0, metrics = ["accuracy", "sensitivity", "specificity"]):
     '''
+    TODO make the metrics list a global member of curious_snake; use this to write out results; 
+    
+    n -- number of runs, i.e., number of files
     
     '''
+    averaged_results_for_learners = {}
     for learner in learner_names:
-        ### this method is off need to do summing correctly. should be easy? running totals needs to 
-        ### be made a matrix with K rows where K is the number of times learner was
-        ### evalauted
-        running_totals = [0.0 for x in range(len(["size", "accuracy", "sensitivity", "specificity"]))]
+        running_totals, sizes, num_steps = None, None, None
+    
         for run in range(n):
             cur_run_results = _parse_results_file(os.path.join(base_path, learner + "_" + str(run) + ".txt"))
-            pdb.set_trace()
-            for metric_index in range(len(running_totals)):
-                # we add because the first entry on each line is always the size, i.e., number of labels
-                running_totals[metric_index] += eval(cur_run_results[metric_index])
-        averages = [float(metric)/float(n) for metric in running_totals]
-        
-        
-            
+            if running_totals is None:
+                # on the first pass through, we build an initial zero matrix to store our averages. we do this
+                # here because we know how many steps there were (the length, or number of rows, of the first 
+                #`cur_run_results' file)
+                num_steps = len(cur_run_results)
+                running_totals = [[0.0 for metric in range(len(metrics))] for step_i in range(num_steps)]
+                sizes = [0.0 for step_i in range(num_steps)]
+
+            for step_index in range(num_steps):
+                for metric_index in range(len(metrics)):
+                    if metric_index != size_index:
+                        running_totals[step_index][metric_index] += float(cur_run_results[step_index][metric_index])
+                if run == 0:
+                    # set the sizes on the first pass through (these will be the same for each run)
+                    sizes[step_index] = float(cur_run_results[step_index][size_index])
+        averages = [[float(metric)/float(n) for metric in running_total] for running_total in running_totals]
+        averaged_results_for_learners[learner] = (sizes, dict(zip(metrics, averages)))
+    return averaged_results_for_learners
+             
 def average(x):
     return float(sum(x)) / float(len(x))
 
