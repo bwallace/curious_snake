@@ -39,11 +39,11 @@ def line_to_instance(l, id):
     point = l_split[1:]
     dict_point = {}
     
-    for coord, value in [dimension.split(":") for dimension in point if point[0] != '']:
-      try:
+    try:
+        for coord, value in [dimension.split(":") for dimension in point if point[0] != '']:
           dict_point[eval(coord)] = eval(value)
-      except:
-          pdb.set_trace()
+    except:
+        pdb.set_trace()
 
 
     return instance(id, dict_point, label)

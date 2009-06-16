@@ -1,7 +1,8 @@
 # append path to the svmlib
 import os
 import sys
-path_to_libsvm = os.path.join(os.getcwd(), "libsvm", "python")
+import pdb
+path_to_libsvm = os.path.join(os.getcwd(), "learners", "libsvm", "python")
 sys.path.append(path_to_libsvm)
 import svm
 from svm import *
@@ -12,6 +13,7 @@ class BaseSVMLearner(BaseLearner):
     
     def __init__(self, unlabeled_datasets = [], models = None):
         BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets)
+        #super(BaseSVMLearner, self).__init__(unlabeled_datasets = unlabeled_datasets)
         # params correspond to each of the respective models (one if we're in a single feature space)
         # these specify things like what kind of kernel to use. here we just use the default, but
         # *you'll probably want to overwrite this* in your subclass. see the libsvm doc for more information (in particular,
@@ -21,7 +23,7 @@ class BaseSVMLearner(BaseLearner):
         
     def rebuild_models(self):
         ''' Rebuilds all models over the current labeled datasets. '''    
-        if undersample_first:
+        if self.undersample_first:
             print "undersampling before building models.."
             datasets = self.undersample_labeled_datasets()
             print "done."
@@ -95,3 +97,13 @@ class BaseSVMLearner(BaseLearner):
         if not (x.id, y.id) in self.div_hash:
             self.div_hash[(x.id, y.id)] = model.compute_cos_between_examples(x.point, y.point)
         return self.div_hash[(x.id, y.id)]
+        
+def _arg_max(ls, f):
+    ''' Returns the index for x in ls for which f(x) is maximal w.r.t. the rest of the list '''
+    return_index = 0
+    max_val = f(ls[0])
+    for i in range(len(ls)-1):
+        if f(ls[i+1]) > max_val:
+            return_index = i
+            max_val = f(ls[i+1])
+    return return_index

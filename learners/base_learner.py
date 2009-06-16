@@ -17,7 +17,7 @@ import math
 import dataset 
 import numpy
 
-class BaseLearner:
+class BaseLearner(object):
     '''
     Base learner class. Sub-class this object to implement your own learning strategy. 
     
@@ -29,11 +29,12 @@ class BaseLearner:
     
     # TODO add (optional?) schohn/general stopping criterion implementation  -- where should this go?
     
-    def __init__(self, unlabeled_datasets = [], models = None):
+    def __init__(self, unlabeled_datasets = [], models = None, undersample_before_eval = False):
         '''
         unlabeled_datasets should be either (1) a string pointing to a single data file (e.g., "mydata.txt") or (2) a list of strings
         pointing to multiple data files that represent the same data with different feature spaces. For more on the data format,
         consult the doc or see the samples.
+        
         '''
         if type(unlabeled_datasets) == type(""):
             # then a string, presumably pointing to a single data file, was passed in
@@ -43,7 +44,7 @@ class BaseLearner:
         # initialize empty labeled datasets (i.e., all data is unlabeled to begin with)
         self.labeled_datasets = [dataset.dataset([]) for d in unlabeled_datasets]
         self.models = models
-
+        self.undersample_first = undersample_before_eval 
         self.query_function = self.base_q_function # throws exception if not overridden 
         self.name = "Base"
         
@@ -178,15 +179,5 @@ class BaseLearner:
             unlabeled_dataset.add_instances(labeled_dataset.remove_instances(inst_ids))
 
     
-    
-def _arg_max(ls, f):
-    ''' Returns the index for x in ls for which f(x) is maximal w.r.t. the rest of the list '''
-    return_index = 0
-    max_val = f(ls[0])
-    for i in range(len(ls)-1):
-        if f(ls[i+1]) > max_val:
-            return_index = i
-            max_val = f(ls[i+1])
-    return return_index
 
         

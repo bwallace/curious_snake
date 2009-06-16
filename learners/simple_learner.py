@@ -10,7 +10,7 @@ class SimpleLearner(BaseSVMLearner):
         # call the BaseLearner constructor to initialize various globals and process the
         # datasets, etc.; of course, these can subsequently be overwritten.
         BaseSVMLearner.__init__(self, unlabeled_datasets=unlabeled_datasets, models=models)
-        
+        #super(SimpleLearner, self).__init__()
         # ovewrite svm parameters here 
         self.params = [svm_parameter()  for d in unlabeled_datasets]
         

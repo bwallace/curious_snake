@@ -55,10 +55,11 @@ import pdb
 import os
 import math
 import dataset
-import learners.base_learner
-import learners.simple_learner
-import learners.random_learner
-
+import learners.base_learner as base_learner
+import learners.simple_learner as simple_learner
+import learners.random_learner as random_learner
+import pylab
+    
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
                                                   initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, 
@@ -154,7 +155,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         first_iter = True
         while num_labels_so_far <= upto - step_size:
             #
-            # here's the main active learning loop
+            # the main active learning loop
             #
             cur_step_size = step_size
             cur_batch_size = batch_size
@@ -181,8 +182,10 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         # close files
         for output_file in output_files:
             output_file.close()
-        
-     
+    
+        # post-experimental reporting
+        post_runs_report(outpath, [l.name for l in learners], num_runs)
+           
 def report_results(learners, test_datasets, cur_size, output_files):
     ''' 
     Writes results for the learners, as evaluated over the test_dataset(s), to the console and the parametric
@@ -191,7 +194,7 @@ def report_results(learners, test_datasets, cur_size, output_files):
     learner_index = 0
     for learner in learners:
         print "\nresults for %s @ %s labeled examples:" % (learner.name, len(learner.labeled_datasets[0].instances))
-        results = evaluate_learner_with_holdout(learner, test_datasets)
+        results = evaluate_learner_with_holdout(learner, cur_size, test_datasets)
         write_out_results(results, output_files[learner_index], cur_size)
         learner_index+=1
      
@@ -206,17 +209,18 @@ def box_if_string(s):
     return s
         
         
-def evaluate_learner_with_holdout(learner, test_sets):
+def evaluate_learner_with_holdout(learner, num_labels, test_sets):
     '''
     If you're not considering a "finite pool" problem, this is the correct way to evaluate the trained classifiers. 
     
     @params
     learner -- the learner to be evaluated
+    num_labels -- how many labels have been provided to the learner thus far
     test_sets -- the set(s) of examples to be used for evaluation. if there are multiple, it is assumed that they correspond to multiple feature
                             spaces, thus they will have to be cominbed somehow. The 'predict' method in the learner class(es) handles this, see that 
                             method in, e.g., base_learner, for more.
     '''
-    results={}
+    results={"size":num_labels}
     print "evaluating learner over %s instances." % len(learner.unlabeled_datasets[0].instances)
     fns = 0
     predictions = []
@@ -224,7 +228,7 @@ def evaluate_learner_with_holdout(learner, test_sets):
     # the labels are assumed to be the same; thus we only use the labels for the first dataset
     true_labels = test_sets[0].get_labels()
    
-    # loop over all of the examples, and feed to the "predict" method 
+    # loop over all of the examples, and feed to the predict method 
     # the corresponding point in each feature-space
     for example_index in range(len(point_sets[0])):
         # hand the predict method a list of representations of x; one per feature space/model
@@ -272,6 +276,40 @@ def _calculate_metrics(conf_mat, results):
     
     
 def write_out_results(results, outf, size):
-    write_these_out = [size, results["accuracy"], results["sensitivity"], results["specificity"]]
+    write_these_out = [results[k] for k in ["size", "accuracy", "sensitivity", "specificity"]]
     outf.write(",".join([str(s) for s in write_these_out]))
     outf.write("\n")
+    
+def post_runs_report(base_path, learner_labels, n):    
+    averages = avg_results(base_path, learner_labels, n)
+
+    
+def avg_results(base_path, learner_names, n, x_index = 0, y_index = 1 ):
+    '''
+    
+    '''
+    for learner in learner_names:
+        ### this method is off need to do summing correctly. should be easy? running totals needs to 
+        ### be made a matrix with K rows where K is the number of times learner was
+        ### evalauted
+        running_totals = [0.0 for x in range(len(["size", "accuracy", "sensitivity", "specificity"]))]
+        for run in range(n):
+            cur_run_results = _parse_results_file(os.path.join(base_path, learner + "_" + str(run) + ".txt"))
+            pdb.set_trace()
+            for metric_index in range(len(running_totals)):
+                # we add because the first entry on each line is always the size, i.e., number of labels
+                running_totals[metric_index] += eval(cur_run_results[metric_index])
+        averages = [float(metric)/float(n) for metric in running_totals]
+        
+        
+            
+def average(x):
+    return float(sum(x)) / float(len(x))
+
+    
+def _parse_results_file(fpath):
+    return_mat = []
+    for l in open(fpath, 'r').readlines():
+        return_mat.append([eval(s) for s in l.replace("\n", "").split(",")])
+    return return_mat
+    
