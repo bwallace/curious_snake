@@ -284,7 +284,7 @@ def post_runs_report(base_path, learner_labels, n):
     averages = avg_results(base_path, learner_labels, n)
     pdb.set_trace()
     
-def avg_results(base_path, learner_names, n, size_index = 0, metrics = ["accuracy", "sensitivity", "specificity"]):
+def avg_results(base_path, learner_names, n, size_index = 0, metrics = ["num_labels", "accuracy", "sensitivity", "specificity"]):
     '''
     TODO make the metrics list a global member of curious_snake; use this to write out results; 
     
@@ -302,18 +302,26 @@ def avg_results(base_path, learner_names, n, size_index = 0, metrics = ["accurac
                 # here because we know how many steps there were (the length, or number of rows, of the first 
                 #`cur_run_results' file)
                 num_steps = len(cur_run_results)
-                running_totals = [[0.0 for metric in range(len(metrics))] for step_i in range(num_steps)]
+                running_totals = []
+                for step_i in range(num_steps):
+                    running_totals.append([0.0 for metric in range(len(metrics))])
                 sizes = [0.0 for step_i in range(num_steps)]
 
             for step_index in range(num_steps):
                 for metric_index in range(len(metrics)):
-                    if metric_index != size_index:
-                        running_totals[step_index][metric_index] += float(cur_run_results[step_index][metric_index])
+                    running_totals[step_index][metric_index] += float(cur_run_results[step_index][metric_index])
                 if run == 0:
                     # set the sizes on the first pass through (these will be the same for each run)
                     sizes[step_index] = float(cur_run_results[step_index][size_index])
-        averages = [[float(metric)/float(n) for metric in running_total] for running_total in running_totals]
-        averaged_results_for_learners[learner] = (sizes, dict(zip(metrics, averages)))
+        #averages = [[float(metric)/float(n) for metric in running_total] for running_total in running_totals]
+        averages = []
+        for metric_i in range(metric_index):
+            cur_metric_avg = []
+            for step_i in range(num_steps):
+                cur_metric_avg.append(running_totals[step_i][metric_i] / float(n))
+            averages.append(cur_metric_avg)
+
+        averaged_results_for_learners[learner] = dict(zip(metrics, averages))
     return averaged_results_for_learners
              
 def average(x):
