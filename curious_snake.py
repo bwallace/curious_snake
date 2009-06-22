@@ -58,7 +58,6 @@ import dataset
 import learners.base_learner as base_learner
 import learners.simple_learner as simple_learner
 import learners.random_learner as random_learner
-import pylab
     
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
@@ -204,7 +203,6 @@ def box_if_string(s):
     If s is a string, returns a unary list [s]
     '''
     if type(s) == type(""):
-        # then a string, presumably pointing to a single data file, was passed in
         return [s]
     return s
         
@@ -281,11 +279,25 @@ def write_out_results(results, outf, size):
     outf.write("\n")
     
 def post_runs_report(base_path, learner_labels, n):    
+    '''
+    Call me after the run is done. Requires pylab! 
+    
+    TODO refactor into separate module. Globalize list of metrics to output.
+    '''
+    metrics = ["num_labels", "accuracy", "sensitivity", "specificity"]
+    try:
+        import pylab
+    except:
+        print "sorry; couldn't import the pylab module. your results have been written out, but I can't plot them."
+    
     averages = avg_results(base_path, learner_labels, n)
     pdb.set_trace()
     
 def avg_results(base_path, learner_names, n, size_index = 0, metrics = ["num_labels", "accuracy", "sensitivity", "specificity"]):
     '''
+    This method aggregates the results from the files output during the active learing simulation, building
+    averaged time curves for each of the metrics and returning these in a dictionary.
+    
     TODO make the metrics list a global member of curious_snake; use this to write out results; 
     
     n -- number of runs, i.e., number of files
@@ -313,7 +325,7 @@ def avg_results(base_path, learner_names, n, size_index = 0, metrics = ["num_lab
                 if run == 0:
                     # set the sizes on the first pass through (these will be the same for each run)
                     sizes[step_index] = float(cur_run_results[step_index][size_index])
-        #averages = [[float(metric)/float(n) for metric in running_total] for running_total in running_totals]
+
         averages = []
         for metric_i in range(metric_index):
             cur_metric_avg = []
