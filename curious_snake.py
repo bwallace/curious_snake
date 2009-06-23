@@ -58,7 +58,7 @@ import dataset
 import learners.base_learner as base_learner
 import learners.simple_learner as simple_learner
 import learners.random_learner as random_learner
-    
+import results_reporter
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
                                                   initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, 
@@ -183,7 +183,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
             output_file.close()
     
     # post-experimental reporting
-    post_runs_report(outpath, [l.name for l in learners], num_runs)
+    results_reporter.post_runs_report(outpath, [l.name for l in learners], num_runs)
            
 def report_results(learners, test_datasets, cur_size, output_files):
     ''' 
@@ -237,7 +237,6 @@ def evaluate_learner_with_holdout(learner, num_labels, test_sets):
     _calculate_metrics(conf_mat, results)
     return results
     
- 
 def _evaluate_predictions(predictions, true_labels):
     conf_mat = {"tp":0, "fp":0, "tn":0, "fn":0}
     for prediction, true_label in zip(predictions, true_labels):
@@ -278,71 +277,5 @@ def write_out_results(results, outf, size):
     outf.write(",".join([str(s) for s in write_these_out]))
     outf.write("\n")
     
-def post_runs_report(base_path, learner_labels, n):    
-    '''
-    Call me after the run is done. Requires pylab! 
-    
-    TODO refactor into separate module. Globalize list of metrics to output.
-    '''
-    metrics = ["num_labels", "accuracy", "sensitivity", "specificity"]
-    try:
-        import pylab
-    except:
-        print "sorry; couldn't import the pylab module. your results have been written out, but I can't plot them."
-    
-    averages = avg_results(base_path, learner_labels, n)
-    pdb.set_trace()
-    
-def avg_results(base_path, learner_names, n, size_index = 0, metrics = ["num_labels", "accuracy", "sensitivity", "specificity"]):
-    '''
-    This method aggregates the results from the files output during the active learing simulation, building
-    averaged time curves for each of the metrics and returning these in a dictionary.
-    
-    TODO make the metrics list a global member of curious_snake; use this to write out results; 
-    
-    n -- number of runs, i.e., number of files
-    
-    '''
-    averaged_results_for_learners = {}
-    for learner in learner_names:
-        running_totals, sizes, num_steps = None, None, None
-    
-        for run in range(n):
-            cur_run_results = _parse_results_file(os.path.join(base_path, learner + "_" + str(run) + ".txt"))
-            if running_totals is None:
-                # on the first pass through, we build an initial zero matrix to store our averages. we do this
-                # here because we know how many steps there were (the length, or number of rows, of the first 
-                #`cur_run_results' file)
-                num_steps = len(cur_run_results)
-                running_totals = []
-                for step_i in range(num_steps):
-                    running_totals.append([0.0 for metric in range(len(metrics))])
-                sizes = [0.0 for step_i in range(num_steps)]
 
-            for step_index in range(num_steps):
-                for metric_index in range(len(metrics)):
-                    running_totals[step_index][metric_index] += float(cur_run_results[step_index][metric_index])
-                if run == 0:
-                    # set the sizes on the first pass through (these will be the same for each run)
-                    sizes[step_index] = float(cur_run_results[step_index][size_index])
-
-        averages = []
-        for metric_i in range(metric_index):
-            cur_metric_avg = []
-            for step_i in range(num_steps):
-                cur_metric_avg.append(running_totals[step_i][metric_i] / float(n))
-            averages.append(cur_metric_avg)
-
-        averaged_results_for_learners[learner] = dict(zip(metrics, averages))
-    return averaged_results_for_learners
-             
-def average(x):
-    return float(sum(x)) / float(len(x))
-
-    
-def _parse_results_file(fpath):
-    return_mat = []
-    for l in open(fpath, 'r').readlines():
-        return_mat.append([eval(s) for s in l.replace("\n", "").split(",")])
-    return return_mat
     
