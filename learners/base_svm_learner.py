@@ -7,6 +7,9 @@
 	
 	A base class for active learners using Support Vector Machines (SVMs). Uses (a modified version of) libsvm library, 
 	Copyright (c) 2000-2008 Chih-Chung Chang and Chih-Jen Lin. 
+	
+	Subclass this if you want to implement a different active learning strategy with SVMs (see the random_svm_learner and 
+	simple_svm_learner modules).
 '''
 #
 # Here we explicitly append the path to libsvm; this 

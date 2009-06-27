@@ -14,7 +14,7 @@
     *lists* of unlabeled_datasets and models are kept. If you only have one feature space that you're interested
      in, as is often the case, simply pass around unary lists. 
      
-     (2) It is assumed throughout the active learning is being done over binary datasets.
+    (2) It is assumed throughout the active learning is being done over binary datasets.
      
     ... Now for some legal stuff.
     ----
