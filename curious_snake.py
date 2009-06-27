@@ -1,7 +1,7 @@
 '''
 	Byron C Wallace
 	Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
-	Curious Snake: Active Learning in Python with SVMs
+	Curious Snake: Active Learning in Python
 	curious_snake.py
 	--
 	This module is for running experiments to compare active learning strategies. It uses the active learning framework.
@@ -258,7 +258,6 @@ def _evaluate_predictions(predictions, true_labels):
                 conf_mat["fp"]+=1
     return conf_mat
     
-           
 def _calculate_metrics(conf_mat, results):
     print "confusion matrix:"
     print conf_mat

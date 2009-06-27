@@ -1,4 +1,16 @@
-# append path to the svmlib
+'''
+	Byron C Wallace
+	Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
+	Curious Snake: Active Learning in Python
+	base_svm_learner.py
+	---
+	
+	A base class for active learners using Support Vector Machines (SVMs). Uses (a modified version of) libsvm library, 
+	Copyright (c) 2000-2008 Chih-Chung Chang and Chih-Jen Lin. 
+'''
+#
+# Here we explicitly append the path to libsvm; this 
+#
 import os
 import sys
 import pdb
@@ -13,7 +25,6 @@ class BaseSVMLearner(BaseLearner):
     
     def __init__(self, unlabeled_datasets = [], models = None):
         BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets)
-        #super(BaseSVMLearner, self).__init__(unlabeled_datasets = unlabeled_datasets)
         # params correspond to each of the respective models (one if we're in a single feature space)
         # these specify things like what kind of kernel to use. here we just use the default, but
         # *you'll probably want to overwrite this* in your subclass. see the libsvm doc for more information (in particular,
