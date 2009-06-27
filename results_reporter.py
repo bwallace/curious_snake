@@ -1,3 +1,14 @@
+'''
+	Byron C Wallace
+	Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
+	Curious Snake: Active Learning in Python with SVMs
+	results_reporter.py
+	---
+	
+	This module is for aggregating and reporting the output of experimental runs. It uses pylab
+	to generate the standard 'learning curves' for each of the learners.
+'''
+
 import os
 import pdb
 try:
@@ -9,23 +20,27 @@ except:
     
 def post_runs_report(base_path, learner_labels, n, metrics = ["num_labels", "accuracy", "sensitivity", "specificity"]):    
     '''
-    Call me after the run is done. Requires pylab! 
-    
-    TODO Globalize list of metrics to output.
-    '''
-
-        
-    
+    Call this method when the analysis finishes. It:
+        1) Averages the n runs
+        2) Plots the results for each metric in metric and saves these to the 
+        base_path directory. Note: Requires pylab! 
+    '''        
+    print "averaging results..."
     averages = avg_results(base_path, learner_labels, n, metrics) 
-
+    print "done."
+    
     # note that we skip the number of labels
     for metric in metrics[1:]:
-        plot_metric_for_learners(averages, metric, output_path = metric + ".pdf")
+        plot_metric_for_learners(averages, metric, output_path = os.path.join(base_path, metric) + ".pdf")
     
     print "plots generated"
     
-def plot_metric_for_learners(results, metric, legend_loc = "lower right", x_key = "num_labels", output_path = None,
-                            show_plot = True):
+    
+def plot_metric_for_learners(results, metric, legend_loc = "lower right", x_key = "num_labels", 
+                            output_path = None, show_plot = True):
+    '''
+    Uses pylab to generate a learning plot (number of labels v. metric of interest) for each of the learners.
+    '''
     learner_names = results.keys()
     learner_names.sort()
     
@@ -39,6 +54,8 @@ def plot_metric_for_learners(results, metric, legend_loc = "lower right", x_key 
         lines.append(pylab.plot(results[learner]["num_labels"], results[learner][metric], 'o-'))
     
     pylab.legend(lines, learner_names, legend_loc, shadow = True)
+    pylab.xlabel("Number of Labels")
+    pylab.ylabel(metric)
     
     # if an output path was passed in, save the plot to it
     if output_path is not None:

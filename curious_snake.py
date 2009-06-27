@@ -62,11 +62,12 @@ import results_reporter
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
                                                   initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, 
-                                                  num_runs=10):
+                                                  num_runs=10, report_results=True):
     '''
     This method demonstrates how to use the active learning framework, and is also a functional routine for comparing learners. Basically,
     a number of runs will be performed, the active learning methods will be evaluated at each step, and results will be reported. The results
-    for each run will be dumped to a text files, which then can be combined (e.g., averaged), elsewhere.
+    for each run will be dumped to a text files, which then can be combined (e.g., averaged), elsewhere, or you can use the results_reporter
+    module to aggregate and plot the output.
     
     @parameters
     --
@@ -83,6 +84,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
     step_size -- results will be reported every time another step_size examples have been labeled
     pick_balanced_initial_set -- if True, the initial train dataset will be built over an equal number (initial_size/2) of both classes.
     num_runs -- this many runs will be performed
+    report_results -- if true, the results_reporter module will be used to generate output.
     '''
     for run in range(num_runs):
         print "\n********\non run %s" % run
