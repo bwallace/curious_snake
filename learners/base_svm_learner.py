@@ -5,14 +5,14 @@
 	base_svm_learner.py
 	---
 	
-	A base class for active learners using Support Vector Machines (SVMs). Uses (a modified version of) libsvm library, 
-	Copyright (c) 2000-2008 Chih-Chung Chang and Chih-Jen Lin. 
+	A base class for active learners using Support Vector Machines (SVMs). Uses (a modified version of) the
+	libsvm library, Copyright (c) 2000-2008 Chih-Chung Chang and Chih-Jen Lin. 
 	
 	Subclass this if you want to implement a different active learning strategy with SVMs (see the random_svm_learner and 
 	simple_svm_learner modules).
 '''
 #
-# Here we explicitly append the path to libsvm; this 
+# Here we explicitly append the path to libsvm; is there a better way to do this?
 #
 import os
 import sys
@@ -36,7 +36,8 @@ class BaseSVMLearner(BaseLearner):
         self.div_hash = {}
         
     def rebuild_models(self):
-        ''' Rebuilds all models over the current labeled datasets. '''    
+        ''' Rebuilds all models over the current labeled datasets. '''
+        dataset = None
         if self.undersample_first:
             print "undersampling before building models.."
             datasets = self.undersample_labeled_datasets()
@@ -51,49 +52,15 @@ class BaseSVMLearner(BaseLearner):
             problem = svm_problem(labels, samples)
             self.models.append(svm_model(problem, param))
         print "done."
-    
-    def predict(self, X):
-        ''' 
-        This defines how we will predict labels for new examples. We use a simple ensemble voting
-        strategy if there are multiple feature spaces. If there is just one feature space, this just
-        uses the libSVM predict function. 
-        '''
-        return self.majority_predict(X)
-            
-            
-    def majority_predict(self, X):
-        '''
-        If there are multiple models built over different feature spaces, this predicts a label for an instance based on the
-        majority vote of these classifiers -- otherwise this is simply "predict"
-        '''
-        votes = []
-        if self.models and len(self.models):
-            for m,x in zip(self.models, X):
-                votes.append(m.predict(x))
-            vote_set = list(set(votes))
-            count_in_list = lambda x: votes.count(x)
-            return vote_set[_arg_max(vote_set, count_in_list)]
-        else:
-            raise Exception, "No models have been initialized."
 
-    def cautious_predict(self, X):
-        '''
-        A naive way of combining different models (built over different feature-spaces); if any othe models vote yes, then vote yes.
-        When there is only on feature space, this reduces to simply "predict".
-        '''
-        if self.models and len(self.models):
-            return max([m.predict(x) for m,x in zip(self.models, X)])
-        else:
-            raise Exception, "No models have been initialized."
-
-            def _get_dist_from_l(self, model, data, x):
-                min_dist = None
-                for y in data.instances:
-                    if not (x.id, y.id) in self.dist_hash:
-                        self.dist_hash[(x.id, y.id)] = model.compute_dist_between_examples(x.point, y.point)
-                    if not min_dist or self.dist_hash[(x.id, y.id)] < min_dist:
-                        min_dist = self.dist_hash[(x.id, y.id)]
-                return min_dist
+    def _get_dist_from_l(self, model, data, x):
+        min_dist = None
+        for y in data.instances:
+            if not (x.id, y.id) in self.dist_hash:
+                self.dist_hash[(x.id, y.id)] = model.compute_dist_between_examples(x.point, y.point)
+            if not min_dist or self.dist_hash[(x.id, y.id)] < min_dist:
+                min_dist = self.dist_hash[(x.id, y.id)]
+        return min_dist
 
 
     def _compute_div(self, model, data, x):
@@ -112,12 +79,3 @@ class BaseSVMLearner(BaseLearner):
             self.div_hash[(x.id, y.id)] = model.compute_cos_between_examples(x.point, y.point)
         return self.div_hash[(x.id, y.id)]
         
-def _arg_max(ls, f):
-    ''' Returns the index for x in ls for which f(x) is maximal w.r.t. the rest of the list '''
-    return_index = 0
-    max_val = f(ls[0])
-    for i in range(len(ls)-1):
-        if f(ls[i+1]) > max_val:
-            return_index = i
-            max_val = f(ls[i+1])
-    return return_index

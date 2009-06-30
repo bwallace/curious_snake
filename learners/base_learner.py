@@ -82,6 +82,39 @@ class BaseLearner(object):
         print "active learning loop completed; models rebuilt."
             
     
+    def predict(self, X):
+        ''' 
+        This defines how we will predict labels for new examples. We use a simple ensemble voting
+        strategy if there are multiple feature spaces. If there is just one feature space, this just
+        uses the 'predict' function of the model.
+        '''
+        return self.majority_predict(X)
+
+    def majority_predict(self, X):
+        '''
+        If there are multiple models built over different feature spaces, this predicts a label for an instance based on the
+        majority vote of these classifiers -- otherwise this is simply "predict"
+        '''
+        votes = []
+        if self.models and len(self.models) > 0:
+            for m,x in zip(self.models, X):
+                votes.append(m.predict(x))
+            vote_set = list(set(votes))
+            count_in_list = lambda x: votes.count(x)
+            return vote_set[_arg_max(vote_set, count_in_list)]
+        else:
+            raise Exception, "No models have been initialized."
+
+    def cautious_predict(self, X):
+        '''
+        A naive way of combining different models (built over different feature-spaces); if any othe models vote yes, then vote yes.
+        When there is only on feature space, this reduces to simply "predict".
+        '''
+        if self.models and len(self.models):
+            return max([m.predict(x) for m,x in zip(self.models, X)])
+        else:
+            raise Exception, "No models have been initialized."
+                
     def base_q_function(self, k):
         ''' overwite this method with query function of choice (e.g., SIMPLE) '''
         raise Exception, "no query function provided!"
@@ -146,9 +179,7 @@ class BaseLearner(object):
     
          
     def get_random_unlabeled_ids(self, k):
-        '''
-        Returns a random set of k instance ids
-        ''' 
+        ''' Returns a random set of k instance ids ''' 
         selected_ids = []
         ids = self.unlabeled_datasets[0].get_instance_ids()  
         for i in range(k):
@@ -160,7 +191,6 @@ class BaseLearner(object):
 
     def rebuild_models(self, undersample_first=False):
         raise Exception, "No models provided! (BaseLearner)"
-
 
     def write_out_labeled_data(self, path, dindex=0):
         outf = open(path, 'w')
@@ -178,6 +208,14 @@ class BaseLearner(object):
         for unlabeled_dataset, labeled_dataset in zip(self.unlabeled_datasets, self.labeled_datasets):
             unlabeled_dataset.add_instances(labeled_dataset.remove_instances(inst_ids))
 
-    
+def _arg_max(ls, f):
+    ''' Returns the index for x in ls for which f(x) is maximal w.r.t. the rest of the list '''
+    return_index = 0
+    max_val = f(ls[0])
+    for i in range(len(ls)-1):
+        if f(ls[i+1]) > max_val:
+            return_index = i
+            max_val = f(ls[i+1])
+    return return_index
 
         
