@@ -60,7 +60,6 @@ class instance:
     id = None
     name = None
 
-  
     def __init__(self, id, point, label=None, name="", is_synthetic=False):
         self.id = id
         self.point = point
@@ -223,16 +222,12 @@ class dataset:
         return dataset(majorities)
 
     def number_of_majority_examples(self):
-        '''
-        Counts and returns the number of majority examples in this dataset.
-        '''
+        ''' Counts and returns the number of majority examples in this dataset. '''
         return len(self.instances) - self.number_of_minority_examples()
     
     
     def get_examples_with_label(self, label):
-        '''
-        Returns a new dataset with all the examples that have the parametric label.
-        '''
+        ''' Returns a new dataset with all the examples that have the parametric label. '''
         examples = []
         for inst in self.instances:
             if inst.label == label:

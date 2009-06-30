@@ -55,14 +55,16 @@ import pdb
 import os
 import math
 import dataset
-import learners.base_learner as base_learner
-import learners.simple_learner as simple_learner
-import learners.random_learner as random_learner
+import learners.base_svm_learner as base_learner
+import learners.simple_svm_learner as simple_learner
+import learners.random_svm_learner as random_learner
+
+import learners.base_nb_learner as nb_learner
 import results_reporter
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
                                                   initial_size = 2, batch_size = 5,  pick_balanced_initial_set = True, 
-                                                  num_runs=10, report_results=True):
+                                                  num_runs=10, report_results_after_runs=True):
     '''
     This method demonstrates how to use the active learning framework, and is also a functional routine for comparing learners. Basically,
     a number of runs will be performed, the active learning methods will be evaluated at each step, and results will be reported. The results
@@ -131,6 +133,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         #
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
                     simple_learner.SimpleLearner([d.copy() for d in datasets])]
+                    #nb_learner.NBLearner([d.copy() for d in datasets])]
                 
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 
@@ -165,7 +168,8 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
                 # the step_size is set to 25 (we want to report results every 25 labels), 
                 # but the initial size was 2; then we want to label 23 on the first iteration
                 # so that we report results when 25 total labels have been provided
-                cur_step_size = step_size - num_labels_so_far if num_labels_so_far <= step_size else step_size - (num_labels_so_far - step_size) 
+                cur_step_size = step_size - num_labels_so_far if num_labels_so_far <= step_size \
+                                else step_size - (num_labels_so_far - step_size)
                 # in general, step_size is assumed to be a multiple of batch_size, for the first iteration, 
                 # when we're catching up to to the step_size (as outlined above), we set the
                 # batch_size to 1 to make sure this condition holds.
@@ -185,7 +189,8 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
             output_file.close()
     
     # post-experimental reporting
-    results_reporter.post_runs_report(outpath, [l.name for l in learners], num_runs)
+    if report_results_after_runs:
+        results_reporter.post_runs_report(outpath, [l.name for l in learners], num_runs)
            
 def report_results(learners, test_datasets, cur_size, output_files):
     ''' 
@@ -201,9 +206,7 @@ def report_results(learners, test_datasets, cur_size, output_files):
      
      
 def box_if_string(s):
-    '''
-    If s is a string, returns a unary list [s]
-    '''
+    ''' If s is a string, returns a unary list [s] '''
     if type(s) == type(""):
         return [s]
     return s
@@ -258,7 +261,15 @@ def _evaluate_predictions(predictions, true_labels):
                 conf_mat["fp"]+=1
     return conf_mat
     
+    
 def _calculate_metrics(conf_mat, results):
+    '''
+    Computes a number of metrics from the provided confusion matrix, conf_mat. In particular,
+    returns: accuracy, sensitivity and specificity (sensitivity is, arbitrarily, defined w.r.t.
+    the positive class).
+    
+    TODO Add F1
+    '''
     print "confusion matrix:"
     print conf_mat
     results["confusion_matrix"] = conf_mat
