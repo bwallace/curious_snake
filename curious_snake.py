@@ -17,6 +17,7 @@
     (2) It is assumed throughout the active learning is being done over binary datasets.
      
     ... Now for some legal stuff.
+    
     ----
     CuriousSnake is distributed under the modified BSD licence
     Copyright (c)  2009,  byron c wallace
@@ -36,7 +37,7 @@
     THIS SOFTWARE IS PROVIDED BY byron c wallace 'AS IS'' AND ANY
     EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
     WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
+    DISCLAIMED. IN NO EVENT SHALL byron wallace BE LIABLE FOR ANY
     DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
     (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -58,7 +59,6 @@ import dataset
 import learners.base_svm_learner as base_learner
 import learners.simple_svm_learner as simple_learner
 import learners.random_svm_learner as random_learner
-
 import learners.base_nb_learner as nb_learner
 import results_reporter
 
@@ -132,8 +132,8 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         # Here is where learners can be added for comparison
         #
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
-                    simple_learner.SimpleLearner([d.copy() for d in datasets])]
-                    #nb_learner.NBLearner([d.copy() for d in datasets])]
+                    simple_learner.SimpleLearner([d.copy() for d in datasets]),
+                    nb_learner.NBLearner([d.copy() for d in datasets])]
                 
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 
@@ -241,6 +241,7 @@ def evaluate_learner_with_holdout(learner, num_labels, test_sets):
     conf_mat =  _evaluate_predictions(predictions, true_labels)
     _calculate_metrics(conf_mat, results)
     return results
+    
     
 def _evaluate_predictions(predictions, true_labels):
     conf_mat = {"tp":0, "fp":0, "tn":0, "fn":0}

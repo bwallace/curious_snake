@@ -267,8 +267,6 @@ class dataset:
         '''
         Returns a tuple of [[s_1, s_2, ..., s_n], [l_1, l_2, ..., l_n]] where s_i is the ith feature 
         vector and l_i is its label.
-        
-        Note that by default this returns the (possibly fake) label attribute, not the "real_label"
         '''
         samples = []
         labels = []
