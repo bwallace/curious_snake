@@ -126,6 +126,7 @@ def classify(nb, observation):
             max_prob, max_class = probs[klass], klass
     return max_class
 
+
 def train(training_set, results, priors=None, typecode=None):
     """train(training_set, results[, priors]) -> NaiveBayes
 
