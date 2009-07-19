@@ -2,7 +2,9 @@ CXX? = g++
 CFLAGS = -Wall -Wconversion -O3 -fPIC
 SHVER = 1
 
-all: svm-train svm-predict svm-scale
+.PHONY : python all clean
+
+all: svm-train svm-predict svm-scale python
 
 lib: svm.o
 	$(CXX) -shared svm.o -o libsvm.so.$(SHVER)
@@ -17,3 +19,6 @@ svm.o: svm.cpp svm.h
 	$(CXX) $(CFLAGS) -c svm.cpp
 clean:
 	rm -f *~ svm.o svm-train svm-predict svm-scale
+	cd python && $(MAKE) clean
+python:
+	cd python && $(MAKE)

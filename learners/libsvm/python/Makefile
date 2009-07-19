@@ -2,12 +2,14 @@ CXX? = g++
 SWIG ?= swig
 
 #Windows: see ../README ../Makefile.win
-PYTHON_INCLUDEDIR ?= /usr/include/python2.4
+PYTHON_INCLUDEDIR ?= $(shell ls -1d /usr/include/python2.? | tail -1)
 
 CFLAGS = -O3 -I$(PYTHON_INCLUDEDIR) -I..
 LDFLAGS = -shared
 # Mac OS
 # LDFLAGS = -framework Python -bundle
+
+.PHONY : all clean moreclean
 
 all: svmc.so
 
