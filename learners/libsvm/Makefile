@@ -21,4 +21,6 @@ clean:
 	rm -f *~ svm.o svm-train svm-predict svm-scale
 	cd python && $(MAKE) clean
 python:
-	cd python && $(MAKE)
+# not necessary
+#	cd python && $(MAKE)
+	cd python && python setup.py build build_ext --inplace
