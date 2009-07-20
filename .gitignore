@@ -2,3 +2,4 @@
 *.o
 *.so
 *.i
+test_run/*
