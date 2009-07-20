@@ -1,7 +1,7 @@
 import pdb
 import _svmc as svmc
-from _svmc import C_SVC, NU_SVC, ONE_CLASS, EPSILON_SVR, NU_SVR
-from _svmc import LINEAR, POLY, RBF, SIGMOID, PRECOMPUTED
+from svmc import C_SVC, NU_SVC, ONE_CLASS, EPSILON_SVR, NU_SVR
+from svmc import LINEAR, POLY, RBF, SIGMOID, PRECOMPUTED
 import math
 from math import exp, fabs, sqrt
 import numpy

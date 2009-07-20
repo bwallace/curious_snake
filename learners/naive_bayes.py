@@ -94,7 +94,6 @@ def calculate(nb, observation, scale=0):
     lp_observation = 0.0          # P(observation)
     if scale:   # Only calculate this if requested.
         # log P(observation) = log SUM_i P(observation|class_i)P(class_i)
-        pdb.set_trace()
         obs = zeros(len(nb.classes))
         for i in range(len(nb.classes)):
             obs[i] = mathfns.safe_exp(lp_prior[i]+lp_observation_class[i],
@@ -117,10 +116,12 @@ def classify(nb, observation):
     """
     # The class is the one with the highest probability.
     probs = calculate(nb, observation, scale=0)
-    print "PROBS"
-    print probs
     max_prob = max_class = None
     
+    #
+    # TODO Need to ascertain that the observation has the same dimensionality of the
+    # model!
+    #
     for klass in nb.classes:
         if max_prob is None or probs[klass] > max_prob:
             max_prob, max_class = probs[klass], klass
