@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # encoding: utf-8
 '''
-	Byron C Wallace
+	Byron C Wallace and Subie Patel
 	Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
 	Curious Snake: Active Learning in Python
 	base_nb_learner.py
 	---
     
-    Naive Bayes learner.
+    Base Naive Bayes learner; adapts the BioPython naive bayes implementation so that 
+    it is friendly with the sparse-data style curious snake uses. 
 '''
 
 import sys
@@ -20,14 +21,12 @@ import naive_bayes
 from naive_bayes import NaiveBayes
 
 
-class NBLearner(BaseLearner):
+class BaseNBLearner(BaseLearner):
     '''
     Base Naive Bayes learner. 
     '''
-    def __init__(self, unlabeled_datasets):
-		BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets)
-		self.query_function = self.get_random_unlabeled_ids 
-		self.name = "Random Naive Bayes"
+    def __init__(self, unlabeled_datasets, models=None):
+		BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets, models=models)
         
     def _datasets_to_matrices(self, datasets):
 	    ''' 

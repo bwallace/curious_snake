@@ -90,6 +90,7 @@ class BaseLearner(object):
         '''
         return self.majority_predict(X)
 
+
     def majority_predict(self, X):
         '''
         If there are multiple models built over different feature spaces, this predicts a label for an instance based on the

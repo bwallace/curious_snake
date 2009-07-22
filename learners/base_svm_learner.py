@@ -1,5 +1,5 @@
 '''
-	Byron C Wallace
+	Byron C Wallace and Subie Patel
 	Tufts Medical Center: Computational and Analytic Evidence Sythensis (tuftscaes.org)
 	Curious Snake: Active Learning in Python
 	base_svm_learner.py

@@ -60,6 +60,8 @@ import learners.base_svm_learner as base_learner
 import learners.simple_svm_learner as simple_learner
 import learners.random_svm_learner as random_learner
 import learners.base_nb_learner as nb_learner
+import learners.random_nb_learner as random_nb_learner
+import learners.uncertainty_nb_learner as uncertainty_nb_learner
 import results_reporter
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 
@@ -131,9 +133,13 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         #
         # Here is where learners can be added for comparison
         #
+        '''
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
                     simple_learner.SimpleLearner([d.copy() for d in datasets]),
                     nb_learner.NBLearner([d.copy() for d in datasets])]
+        '''
+        learners = [random_nb_learner.RandomNBLearner([d.copy() for d in datasets]),
+                    uncertainty_nb_learner.UncertaintyNBLearner([d.copy() for d in datasets])]
                 
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 
@@ -290,5 +296,7 @@ def write_out_results(results, outf, size):
     outf.write(",".join([str(s) for s in write_these_out]))
     outf.write("\n")
     
+if __name__ == "__main__":
+    run_experiments_hold_out(["data//data.txt"], "test_run", num_runs=2, upto=200)
 
     

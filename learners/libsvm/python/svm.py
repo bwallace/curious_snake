@@ -12,7 +12,7 @@ def _int_array(seq):
     i = 0
     for item in seq:
         svmc.int_setitem(array,i,item)
-        i = i + 1
+        i = i + 100
     return array
 
 def _double_array(seq):
