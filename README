@@ -1,0 +1,32 @@
+Prerequisites:
+==============
+* python source
+* numpy
+* pythonbio
+* zlib
+* freetype
+* libpng
+* matplotlib
+
+Installing prerequisites on Ubuntu:
+-----------------------------------
+sudo apt-get install python-dev
+sudo apt-get install python-numpy
+wget http://pypi.python.org/packages/2.6/s/setuptools/setuptools-0.6c9-py2.6.egg
+sudo sh setuptools-0.6c9-py2.6.egg
+sudo easy_install -f http://biopython.org/DIST/ biopython
+sudo apt-get install zlib1g-dev
+freetype, libpng, and matplotlib can be obtained from sourceforge.net
+
+Building curious_snake:
+=======================
+Simply invoking 'make' in the curious_snake directory should build the necessary libraries included in the checkout (libsvm).
+
+Testing:
+--------
+To test that the system was setup properly, try the following commands in the python interpreter:
+
+import curious_snake
+curious_snake.run_experiments_hold_out(["data//data.txt"], "test_run", num_runs=2, upto=200)
+
+If the run on the test data completes successfully, a plot of the results will appear.
