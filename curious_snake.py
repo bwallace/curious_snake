@@ -56,9 +56,14 @@ import pdb
 import os
 import math
 import dataset
+
+# svm based learners
 import learners.base_svm_learner as base_learner
 import learners.simple_svm_learner as simple_learner
 import learners.random_svm_learner as random_learner
+import learners.pal_svm_learner as pal_learner
+
+# naive bayes based learners
 import learners.base_nb_learner as nb_learner
 import learners.random_nb_learner as random_nb_learner
 import learners.uncertainty_nb_learner as uncertainty_nb_learner
@@ -131,11 +136,12 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         
         
         #
-        # Here is where learners can be added for comparison
+        # Set up the learners, add to list. Here is where you would instantiate new learners.
         #
 
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
-                    simple_learner.SimpleLearner([d.copy() for d in datasets])]
+                    simple_learner.SimpleLearner([d.copy() for d in datasets]),
+                    pal_learner.PALLearner([d.copy() for d in datasets])]
         '''
         learners = [random_nb_learner.RandomNBLearner([d.copy() for d in datasets]),
                     uncertainty_nb_learner.UncertaintyNBLearner([d.copy() for d in datasets])]
@@ -183,7 +189,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
                 first_iter = False
             
             for learner in learners:
-                learner.active_learn(cur_step_size, num_to_label_at_each_iteration = cur_batch_size)
+                learner.active_learn(cur_step_size, batch_size = cur_batch_size)
                             
             num_labels_so_far += cur_step_size
             print "\n***labeled %s examples out of %s so far***" % (num_labels_so_far, upto)
@@ -197,6 +203,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
     # post-experimental reporting
     if report_results_after_runs:
         results_reporter.post_runs_report(outpath, [l.name for l in learners], num_runs)
+           
            
 def report_results(learners, test_datasets, cur_size, output_files):
     ''' 

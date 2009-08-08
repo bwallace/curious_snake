@@ -29,9 +29,15 @@ class BaseLearner(object):
 
     def __init__(self, unlabeled_datasets = None, models = None, undersample_before_eval = False):
         '''
-        unlabeled_datasets should be either (1) a string pointing to a single data file (e.g., "mydata.txt") or (2) a list of strings
-        pointing to multiple data files that represent the same data with different feature spaces. For more on the data format,
-        consult the doc or see the samples.
+        @params:
+        --
+        unlabeled_datasets -- a list of Dataset objects
+        models -- a list of model objects to be used in classification. usually None, as they've yet
+                    to be built.
+        undersample_before_eval -- if True, datasets will be undersampled (i.e., the the number of
+                                   examples from each classes will be made equal) before the final
+                                    classifier is built. see, e.g., Japkowicz:
+                                    "The Class Imbalance Problem: Significance and Strategies"
         '''
         if isinstance(unlabeled_datasets, str):
             # then a string, presumably pointing to a single data file, was passed in
@@ -45,6 +51,7 @@ class BaseLearner(object):
 
         self.models = models
         self.undersample_before_eval = undersample_before_eval 
+        # arbitrary re-sampling functions can be plugged in here
         self.undersample_function = self.undersample_labeled_datasets if undersample_before_eval else None
 
         self.query_function = self.base_q_function # throws exception if not overridden 
@@ -58,30 +65,25 @@ class BaseLearner(object):
 
  
     
-    def active_learn(self, num_examples_to_label, num_to_label_at_each_iteration=5, 
-                                                rebuild_models_at_each_iter=True):
-        ''''
+    def active_learn(self, num_examples_to_label, batch_size=5):
+        '''
         Core active learning routine. Here the learner uses its query function to select a number of examples 
         (num_to_label_at_each_iteration) to label at each step, until the total number of examples requested 
         (num_examples_to_label) has been labeled. The models will be updated at each iteration.
         '''
         labeled_so_far = 0
         while labeled_so_far < num_examples_to_label:
-            print "labeled %s out of %s" % (labeled_so_far, num_examples_to_label)
-            example_ids_to_label = self.query_function(num_to_label_at_each_iteration)
+            example_ids_to_label = self.query_function(batch_size)
             # now remove the selected examples from the unlabeled sets and put them in the labeled sets.
             # if not ids are returned -- ie., if a void query_function is used --
             # it is assumed the query function took care of labeling the examples selected. 
             if example_ids_to_label:
                 self.label_instances_in_all_datasets(example_ids_to_label)
 
-            if rebuild_models_at_each_iter:
-                self.rebuild_models()
-                print "models rebuilt with %s labeled examples" % len(self.labeled_datasets[0].instances)    
-            else:
-                print "model has %s labeled examples thus far (not rebuilding models @ each iter)" % len(self.labeled_datasets[0].instances)
+            if self.rebuild_models_at_each_iter:
+                self.rebuild_models()   
 
-            labeled_so_far += num_to_label_at_each_iteration
+            labeled_so_far += batch_size
 
         self.rebuild_models()
             

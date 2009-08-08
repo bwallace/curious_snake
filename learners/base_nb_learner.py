@@ -25,8 +25,9 @@ class BaseNBLearner(BaseLearner):
     '''
     Base Naive Bayes learner. 
     '''
-    def __init__(self, unlabeled_datasets, models=None):
-		BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets, models=models)
+    def __init__(self, unlabeled_datasets, models=None, undersample_before_eval=False):
+		BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets, models=models,
+		                        undersample_before_eval=undersample_before_eval)
         
     def _datasets_to_matrices(self, datasets):
 	    ''' 

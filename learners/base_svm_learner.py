@@ -26,14 +26,16 @@ from base_learner import BaseLearner
 
 class BaseSVMLearner(BaseLearner):
     
-    def __init__(self, unlabeled_datasets = [], models = None):
-        BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets)
+    def __init__(self, unlabeled_datasets = [], models = None, undersample_before_eval=False):
+        BaseLearner.__init__(self, unlabeled_datasets=unlabeled_datasets, 
+                                undersample_before_eval=undersample_before_eval)
         # params correspond to each of the respective models (one if we're in a single feature space)
         # these specify things like what kind of kernel to use. here we just use the default, but
         # *you'll probably want to overwrite this* in your subclass. see the libsvm doc for more information (in particular,
         # svm_test.py is helpful).
         self.params = [svm_parameter()  for d in unlabeled_datasets]
         self.div_hash = {}
+        
         
     def rebuild_models(self, for_eval=False):
         ''' Rebuilds all models over the current labeled datasets. '''
@@ -75,10 +77,15 @@ class BaseSVMLearner(BaseLearner):
         return sum
 
 
-    def _compute_cos(self, model, x, y):
-        if not (x.id, y.id) in self.div_hash:
-            self.div_hash[(x.id, y.id)] = model.compute_cos_between_examples(x.point, y.point)
-        return self.div_hash[(x.id, y.id)]
+    def _compute_cos(self, model_index, x, y):
+        ''' 
+        computes the cosine between two instances, x and y. note that this memoizes
+        (caches) the cosine, to avoid redundant computation.
+        '''
+        if not (model_index, x.id, y.id) in self.div_hash:
+            model = self.models[model_index]
+            self.div_hash[(model_index, x.id, y.id)] = model.compute_cos_between_examples(x.point, y.point)
+        return self.div_hash[(model_index, x.id, y.id)]
         
     
     #
