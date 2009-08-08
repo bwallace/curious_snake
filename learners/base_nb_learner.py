@@ -70,12 +70,12 @@ class BaseNBLearner(BaseLearner):
 	    return (all_instances, labels)
 	    
 	    
-    def rebuild_models(self):
+    def rebuild_models(self, for_eval=False):
         ''' Rebuilds all models over the current labeled datasets. '''
         datasets = self.labeled_datasets
-        if self.undersample_first:
+        if self.undersample_before_eval and for_eval:
             print "undersampling before building models.."
-            datasets = self.undersample_labeled_datasets()
+            datasets = self.undersample_function()
             
         all_train_sets, labels = self._datasets_to_matrices(datasets)
         self.models = [NB_Model(naive_bayes.train(training_set, labels)) for training_set in all_train_sets]

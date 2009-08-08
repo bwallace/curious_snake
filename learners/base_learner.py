@@ -26,31 +26,36 @@ class BaseLearner(object):
     *lists* of unlabeled_datasets and models are kept. If you only have one feature space that you're interested
      in, as is often the case, simply pass around unary lists.  
     ''' 
-    
-    # TODO add (optional?) schohn/general stopping criterion implementation  -- where should this go?
-    
-    def __init__(self, unlabeled_datasets = [], models = None, undersample_before_eval = False):
+
+    def __init__(self, unlabeled_datasets = None, models = None, undersample_before_eval = False):
         '''
         unlabeled_datasets should be either (1) a string pointing to a single data file (e.g., "mydata.txt") or (2) a list of strings
         pointing to multiple data files that represent the same data with different feature spaces. For more on the data format,
         consult the doc or see the samples.
-        
         '''
-        if type(unlabeled_datasets) == type(""):
+        if isinstance(unlabeled_datasets, str):
             # then a string, presumably pointing to a single data file, was passed in
             unlabeled_datasets  = [unlabeled_datasets]
             
-        self.unlabeled_datasets = unlabeled_datasets
+        self.unlabeled_datasets = unlabeled_datasets or []
         # initialize empty labeled datasets (i.e., all data is unlabeled to begin with)
-        self.labeled_datasets = [dataset.dataset([]) for d in unlabeled_datasets]
+        # note that we give the labeled dataset the same name as the corresponding
+        # unlabeled dataset
+        self.labeled_datasets = [dataset.dataset(name=d.name) for d in unlabeled_datasets]
+
         self.models = models
-        self.undersample_first = undersample_before_eval 
+        self.undersample_before_eval = undersample_before_eval 
+        self.undersample_function = self.undersample_labeled_datasets if undersample_before_eval else None
+
         self.query_function = self.base_q_function # throws exception if not overridden 
         self.name = "Base"
-        
+        self.description = ""
+
         # default prediction function; only important if you're aggregating multiple feature spaces (see 
         # cautious_predict function documentation)
         self.predict = self.majority_predict
+        self.rebuild_models_at_each_iter = True # if this is false, the models will not be rebuilt after each round of active learning
+
  
     
     def active_learn(self, num_examples_to_label, num_to_label_at_each_iteration=5, 
@@ -79,7 +84,6 @@ class BaseLearner(object):
             labeled_so_far += num_to_label_at_each_iteration
 
         self.rebuild_models()
-        print "active learning loop completed; models rebuilt."
             
     
     def predict(self, X):
@@ -139,56 +143,45 @@ class BaseLearner(object):
             labeled_dataset.add_instances(unlabeled_dataset.remove_instances(inst_ids))  
     
 
-        
     def pick_balanced_initial_training_set(self, k):
         '''
         Picks k + and k - examples at random for bootstrap set.
         '''
         minority_ids_to_label = self.unlabeled_datasets[0].pick_random_minority_instances(k)
         majority_ids_to_label = self.unlabeled_datasets[0].pick_random_majority_instances(k)
-        all_ids_to_label = minority_ids_to_label + majority_ids_to_label
-        self.label_instances_in_all_datasets(all_ids_to_label)
+        all_ids_to_label = [inst.id for inst in minority_ids_to_label + majority_ids_to_label]
         return all_ids_to_label
         
         
     def undersample_labeled_datasets(self, k=None):
         '''
-        Undersamples the current labeled datasets, i.e., makes the two classes of equal sizes. 
-        Note that this methods returns a *copy* of the undersampled datasets. Thus it
-        *does not mutate the labeled datasets*.
+        Returns undersampled copies of the current labeled datasets, i.e., copies in which
+        the two classes have equal size. Note that this methods returns a *copy* of the 
+        undersampled datasets. Thus it *does not mutate the labeled datasets*.
         '''
-        if self.labeled_datasets and len(self.labeled_datasets) and (len(self.labeled_datasets[0].instances)):
-            if not k:
+        if self.labeled_datasets and len(self.labeled_datasets) and (len(self.labeled_datasets[0].instances) > 0):
+            if k is None:
                 print "undersampling majority class to equal that of the minority examples"
-                # we have to include 'false' minorities -- i.e., instances we've assumed are positives -- because otherwise we'd be cheating
                 k = self.labeled_datasets[0].number_of_majority_examples() - self.labeled_datasets[0].number_of_minority_examples()
             # we copy the datasets rather than mutate the class members.
-            copied_datasets = [dataset.dataset(list(d.instances)) for d in self.labeled_datasets]
+            copied_datasets = [d.copy() for d in self.labeled_datasets]
             if k < self.labeled_datasets[0].number_of_majority_examples() and k > 0:
                 # make sure we have enough majority examples...
-                print "removing %s majority instances. there are %s total majority examples in the dataset." % (k, self.labeled_datasets[0].number_of_majority_examples())
-                removed_instances = copied_datasets[0].undersample(k)
-                # get the removed instance numbers
-                removed_instance_nums = [inst.id for inst in removed_instances]
-                # if there is more than one feature-space, remove the same instances from the remaining spaces (sets)
+                print "removing %s majority instances. there are %s total majority examples in the dataset." % \
+                        (k, self.labeled_datasets[0].number_of_majority_examples())
+                removed_instance_ids = copied_datasets[0].undersample(k)
+                # if there is more than one feature-space, remove the same 
+                # instances from the remaining spaces (sets)
                 for labeled_dataset in copied_datasets[1:]:
                     # now remove them from the corresponding sets
-                    labeled_dataset.remove_instances(removed_instance_nums)
+                    labeled_dataset.remove_instances(removed_instance_ids)
         else:
             raise Exception, "No labeled data has been provided!"   
         return copied_datasets
-    
-         
+
     def get_random_unlabeled_ids(self, k):
         ''' Returns a random set of k instance ids ''' 
-        selected_ids = []
-        ids = self.unlabeled_datasets[0].get_instance_ids()  
-        for i in range(k):
-            random_id = random.choice(ids)
-            ids.remove(random_id)
-            selected_ids.append(random_id)
-        return selected_ids
-        
+        return random.sample(self.unlabeled_datasets[0].get_instance_ids(), k)
 
     def rebuild_models(self, undersample_first=False):
         raise Exception, "No models provided! (BaseLearner)"
