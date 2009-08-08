@@ -106,20 +106,20 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         
         test_datasets = []
         if datasets_for_eval is not None:
-            # if a test set is specified, use it.
+            # if a test set datafile is specified, use it.
             datasets_for_eval = box_if_string(datasets_for_eval)
             test_datasets = [dataset.build_dataset_from_file(f) for f in datasets_for_eval]
             if upto is None:
                 upto = total_num_examples
         else:
-            # other wise, we copy the first (even if there multiple datasets, it won't matter, as we're just using 
-            # the labels) and pick random examples
+            # other wise, we copy the first (even if there multiple datasets, it won't matter, 
+            # as we're just using the labels) and pick random examples
             hold_out_size = int(hold_out_p * total_num_examples)
-            test_instances = random.sample(datasets[0].instances, hold_out_size)
-            test_instance_ids = [inst.id for inst in test_instances]
+            
+            test_instance_ids = random.sample(datasets[0].instances, hold_out_size)
             # now remove them from the dataset(s)
             for d in datasets:
-                cur_test_dataset = dataset.dataset(d.remove_instances(test_instance_ids))                    
+                cur_test_dataset = dataset.dataset(dict(zip(test_instance_ids, d.remove_instances(test_instance_ids))))                    
                 test_datasets.append(cur_test_dataset)
             
             # if no upper bound was passed in, use the whole pool U
@@ -133,14 +133,14 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         #
         # Here is where learners can be added for comparison
         #
-        '''
+
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
-                    simple_learner.SimpleLearner([d.copy() for d in datasets]),
-                    nb_learner.NBLearner([d.copy() for d in datasets])]
+                    simple_learner.SimpleLearner([d.copy() for d in datasets])]
         '''
         learners = [random_nb_learner.RandomNBLearner([d.copy() for d in datasets]),
                     uncertainty_nb_learner.UncertaintyNBLearner([d.copy() for d in datasets])]
-                
+        '''
+        
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 
         # we arbitrarily pick the initial ids from the first learner; this doesn't matter, as we just use the instance ids
