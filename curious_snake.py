@@ -138,14 +138,14 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         #
         # Set up the learners, add to list. Here is where you would instantiate new learners.
         #
-
+        '''
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
                     simple_learner.SimpleLearner([d.copy() for d in datasets]),
                     pal_learner.PALLearner([d.copy() for d in datasets])]
         '''
         learners = [random_nb_learner.RandomNBLearner([d.copy() for d in datasets]),
                     uncertainty_nb_learner.UncertaintyNBLearner([d.copy() for d in datasets])]
-        '''
+      
         
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]
 

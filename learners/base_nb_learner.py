@@ -14,6 +14,7 @@
 import sys
 import os
 import pdb
+import math
 import numpy
 import base_learner
 from base_learner import BaseLearner
@@ -31,6 +32,7 @@ class BaseNBLearner(BaseLearner):
         
     def _datasets_to_matrices(self, datasets):
 	    ''' 
+	    This is a data conversion routine to make the naive_bayes talk to curious_snake.
 	    Returns the datasets in a format palatable to the naive bayes module.
 	    
 	    Generally, this will need to be done when the format used to train the model
@@ -39,18 +41,14 @@ class BaseNBLearner(BaseLearner):
 	    '''
 	    dims = []
 	    for dataset in datasets:
-	        point_maxes = max([max([inst.point.keys()]) for inst in dataset.instances])
+	        point_maxes = max([max([inst.point.keys()]) for inst in dataset.instances.values()])
 	        max_for_dataset = max(point_maxes)
 	        dims.append(max_for_dataset)
 
 	    all_instances = []
 	    for dimensionality, dataset in zip(dims, datasets):
 	        instances = []
-	        i = 0
-	        for instance in dataset.instances:
-	            print "i: %s" % i
-	            print instances
-	            i+=1
+	        for instance in dataset.instances.values():
 	            cur_inst = []
 	            for x in range(dimensionality):
 	                if x not in instance.point.keys():
@@ -58,16 +56,11 @@ class BaseNBLearner(BaseLearner):
 	                else:
 	                    cur_inst.append(instance.point[x])
 	            instances.append(cur_inst)
-	            print "\nblegh!"
-	            print instances
-	            #print "instance! %s" % str(instance)
-	            #print "cur_inst! %s" % str(cur_inst)
-	            #print "instances! %s" % str(instances)
             
             all_instances.append(instances)
         
         # the labels will be the same for all datasets
-	    labels = [instance.label for instance in datasets[0].instances]
+	    labels = [instance.label for instance in datasets[0].instances.values()]
 	    return (all_instances, labels)
 	    
 	    
@@ -93,7 +86,8 @@ class NB_Model(object):
         return naive_bayes.classify(self.nbayes_model, self._map_x(x))
         
     def prob_dist(self, x):
-        return naive_bayes.calculate(self.nbayes_model, self._map_x(x))
+        logged_ps = naive_bayes.calculate(self.nbayes_model, self._map_x(x))
+        return dict(zip(logged_ps.keys(), [math.exp(x_i) for x_i in logged_ps.values()]))
         
     def _map_x(self, x):
         x_prime = {}
