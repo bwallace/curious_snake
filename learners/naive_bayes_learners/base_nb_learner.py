@@ -16,8 +16,10 @@ import os
 import pdb
 import math
 import numpy
+sys.path.append(os.path.abspath('..'))
 import base_learner
 from base_learner import BaseLearner
+
 import naive_bayes
 from naive_bayes import NaiveBayes
 

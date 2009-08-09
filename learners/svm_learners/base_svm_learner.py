@@ -17,10 +17,12 @@
 import os
 import sys
 import pdb
-path_to_libsvm = os.path.join(os.getcwd(), "learners", "libsvm", "python")
+path_to_libsvm = os.path.join(os.getcwd(), "learners", "svm_learners", "libsvm", "python")
 sys.path.append(path_to_libsvm)
 import svm
 from svm import *
+path_to_base_learner = os.path.join(os.getcwd(), "learners")
+sys.path.append(path_to_base_learner)
 import base_learner
 from base_learner import BaseLearner
 

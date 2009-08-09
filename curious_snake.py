@@ -58,15 +58,15 @@ import math
 import dataset
 
 # svm based learners
-import learners.base_svm_learner as base_learner
-import learners.simple_svm_learner as simple_learner
-import learners.random_svm_learner as random_learner
-import learners.pal_svm_learner as pal_learner
+import learners.svm_learners.base_svm_learner as base_learner
+import learners.svm_learners.simple_svm_learner as simple_learner
+import learners.svm_learners.random_svm_learner as random_learner
+import learners.svm_learners.pal_svm_learner as pal_learner
 
 # naive bayes based learners
-import learners.base_nb_learner as nb_learner
-import learners.random_nb_learner as random_nb_learner
-import learners.uncertainty_nb_learner as uncertainty_nb_learner
+import learners.naive_bayes_learners.base_nb_learner as nb_learner
+import learners.naive_bayes_learners.random_nb_learner as random_nb_learner
+import learners.naive_bayes_learners.uncertainty_nb_learner as uncertainty_nb_learner
 import results_reporter
 
 def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_for_eval = None, upto = None, step_size = 25, 

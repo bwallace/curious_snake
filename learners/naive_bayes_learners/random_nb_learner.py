@@ -7,7 +7,6 @@
     
     Random Naive Bayes learner; A naive naive bayes learner, queries for labels at random.
 '''
-
 import base_nb_learner
 from base_nb_learner import BaseNBLearner
 
