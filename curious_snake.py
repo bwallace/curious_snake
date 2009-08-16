@@ -124,7 +124,7 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
             test_instance_ids = random.sample(datasets[0].instances, hold_out_size)
             # now remove them from the dataset(s)
             for d in datasets:
-                cur_test_dataset = dataset.dataset(dict(zip(test_instance_ids, d.remove_instances(test_instance_ids))))                    
+                cur_test_dataset = dataset.Dataset(dict(zip(test_instance_ids, d.remove_instances(test_instance_ids))))                    
                 test_datasets.append(cur_test_dataset)
             
             # if no upper bound was passed in, use the whole pool U
@@ -138,13 +138,12 @@ def run_experiments_hold_out(data_paths, outpath, hold_out_p = .25,  datasets_fo
         #
         # Set up the learners, add to list. Here is where you would instantiate new learners.
         #
-        '''
         learners = [random_learner.RandomLearner([d.copy() for d in datasets]), 
                     simple_learner.SimpleLearner([d.copy() for d in datasets]),
                     pal_learner.PALLearner([d.copy() for d in datasets])]
-        '''
-        learners = [random_nb_learner.RandomNBLearner([d.copy() for d in datasets]),
-                    uncertainty_nb_learner.UncertaintyNBLearner([d.copy() for d in datasets])]
+        
+        #learners = [random_nb_learner.RandomNBLearner([d.copy() for d in datasets]),
+        #            uncertainty_nb_learner.UncertaintyNBLearner([d.copy() for d in datasets])]
       
         
         output_files = [open("%s//%s_%s.txt" % (outpath, learner.name, run), 'w') for learner in learners]

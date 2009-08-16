@@ -47,7 +47,7 @@ class BaseLearner(object):
         # initialize empty labeled datasets (i.e., all data is unlabeled to begin with)
         # note that we give the labeled dataset the same name as the corresponding
         # unlabeled dataset
-        self.labeled_datasets = [dataset.dataset(name=d.name) for d in unlabeled_datasets]
+        self.labeled_datasets = [dataset.Dataset(name=d.name) for d in unlabeled_datasets]
 
         self.models = models
         self.undersample_before_eval = undersample_before_eval 
@@ -135,6 +135,10 @@ class BaseLearner(object):
         self.label_instances_in_all_datasets(inst_ids)
         
         
+    def label_instances(self, inst_ids):
+        ''' Just an overloaded name for label_instances_in_all_datasets '''
+        self.label_instances_in_all_datasets(inst_ids)
+        
     def label_instances_in_all_datasets(self, inst_ids):
         '''
         Removes the instances in inst_ids (a list of instance numbers to 'label') from the unlabeled dataset(s) and places
@@ -154,6 +158,9 @@ class BaseLearner(object):
         all_ids_to_label = [inst.id for inst in minority_ids_to_label + majority_ids_to_label]
         return all_ids_to_label
         
+        
+    def get_labeled_instance_ids(self):
+        return self.labeled_datasets[0].labeled_instances()
         
     def undersample_labeled_datasets(self, k=None):
         '''

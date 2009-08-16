@@ -6,6 +6,7 @@ import pdb
 sys.path.append(os.path.abspath('..'))
 import dataset
 
+
 class TestDataset(unittest.TestCase):
     
     def setUp(self):
@@ -33,11 +34,10 @@ class TestDataset(unittest.TestCase):
         for inst_id in self.data.get_instance_ids():
             self.assertTrue(inst_id not in some_instance_ids)
 
-    
     def test4_UndersampleDataset(self):
         pass
     
-    
+
         
 if __name__ == '__main__':
     unittest.main()

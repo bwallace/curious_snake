@@ -28,7 +28,7 @@ def build_dataset_from_file(fpath, ids_in_file=False, name=""):
     inst_dict = {}
     for inst in instances:
         inst_dict[inst.id] = inst
-    return dataset(inst_dict, name=name)
+    return Dataset(inst_dict, name=name)
 
 
 def line_to_instance(l, inst_id=None):
@@ -58,11 +58,10 @@ def line_to_instance(l, inst_id=None):
     except:
         pdb.set_trace()
 
-
-    return instance(inst_id, dict_point, label)
+    return Instance(inst_id, dict_point, label)
 
         
-class instance:
+class Instance:
     '''
     Represents a single point/label combination. The label doesn't necessarily
     need to be provided. The point should be a dictionary mapping coordinates
@@ -77,7 +76,7 @@ class instance:
     def set_synthetic_label(self, synth_lbl):
         self.label = synth_lbl
 
-class dataset:
+class Dataset:
     '''
     This class represents a set of data. It is comprised mainly of a dictionary mapping
     ids to feature vectors, and various operations -- e.g., undersampling -- can be performed
@@ -106,11 +105,10 @@ class dataset:
         return [self.instances.pop(id) for id in ids_to_remove]
 
     def copy(self):
-        return dataset(instances = self.instances.copy(), name=self.name) 
+        return Dataset(instances = self.instances.copy(), name=self.name) 
 
     def get_point_for_id(self, id):
         return self.instances[id].point
-
 
     def undersample(self, n):
         ''' 
@@ -136,7 +134,6 @@ class dataset:
         '''
         for inst in instances_to_add:
             if inst.id in self.instances.keys():
-                pdb.set_trace()
                 raise Exception, "dataset.py: error adding instances; duplicate instance ids!"
             self.instances[inst.id] = inst
 
@@ -219,7 +216,7 @@ class dataset:
         for inst in self.instances.values():
             if inst.label == label:
                 examples.append(inst)
-        return dataset(examples)
+        return Dataset(examples)
 
 
     def get_and_remove_random_subset(self, n):

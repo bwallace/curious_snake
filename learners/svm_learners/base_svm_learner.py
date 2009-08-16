@@ -11,12 +11,14 @@
 	Subclass this if you want to implement a different active learning strategy with SVMs (see the random_svm_learner and 
 	simple_svm_learner modules).
 '''
-#
-# Here we explicitly append the path to libsvm; is there a better way to do this?
-#
+
 import os
 import sys
 import pdb
+
+#
+# Here we explicitly append the path to libsvm; is there a better way to do this?
+#
 path_to_libsvm = os.path.join(os.getcwd(), "learners", "svm_learners", "libsvm", "python")
 sys.path.append(path_to_libsvm)
 import svm
@@ -90,18 +92,17 @@ class BaseSVMLearner(BaseLearner):
         return self.div_hash[(model_index, x.id, y.id)]
         
     
-    #
-    # Note that this method lives in this (super) class, rather than, e.g., in 
-    # simple_svm_learner, because lots of learners use _SIMPLE as one of multiple
-    # online learning strategies (e.g., brinker (Diverse), wallace (PAL)). Further,
-    # some sampling strategies (e.g., aggressive undersampling; defined below) require this method.
-    # Hence we make it more accessible by defining it at the base_svm_learner
-    # level.
-    #
     def _SIMPLE(self, model, unlabeled_dataset, k):  
         '''
         Implementation of SIMPLE; takes model and dataset to use parametrically.
         Returns selected instance identifiers, as provided by their id fields.
+        
+        Note that this method lives in this (super) class, rather than, e.g., in 
+        simple_svm_learner, because lots of learners use _SIMPLE as one of multiple
+        online learning strategies (e.g., brinker (Diverse), wallace (PAL)). Further,
+        some sampling strategies (e.g., aggressive undersampling; defined below) require this method.
+        Hence we make it more accessible by defining it at the base_svm_learner
+        level.
         '''    
         # initially assume k first examples are closest
         k_ids_to_distances = {}
