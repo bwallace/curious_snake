@@ -39,8 +39,8 @@ class BaseLearner(object):
                                     classifier is built. see, e.g., Japkowicz:
                                     "The Class Imbalance Problem: Significance and Strategies"
         '''
-        if isinstance(unlabeled_datasets, str):
-            # then a string, presumably pointing to a single data file, was passed in
+        if isinstance(unlabeled_datasets, dataset.Dataset):
+            # then a single data file was passed in
             unlabeled_datasets  = [unlabeled_datasets]
             
         self.unlabeled_datasets = unlabeled_datasets or []
